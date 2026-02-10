@@ -10,19 +10,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* Cores customizadas para os novos status */
-        .status-em-cotacao { background-color: #eff6ff; color: #1d4ed8; border-color: #dbeafe; } /* Azul */
-        .status-pendente { background-color: #fff7ed; color: #c2410c; border-color: #ffedd5; } /* Laranja */
-        .status-aguardando-recebimento { background-color: #fefce8; color: #a16207; border-color: #fef9c3; } /* Amarelo */
-        .status-homologacao { background-color: #f5f3ff; color: #6d28d9; border-color: #ede9fe; } /* Roxo */
-        .status-concluido { background-color: #f0fdf4; color: #15803d; border-color: #dcfce7; } /* Verde */
-        .status-entrega-parcial { background-color: #fdf8f6; color: #78350f; border-color: #f7e8e1; } /* Marrom/Terracota */
-        .status-nao-iniciada { background-color: #fdf2f8; color: #be185d; border-color: #fce7f3; } /* Rosa */
-        .status-recebido-erro { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; } /* Vermelho */
-        .status-aguardando-retirada { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; } /* Vermelho */
-        .status-cancelado { background-color: #f8fafc; color: #475569; border-color: #f1f5f9; } /* Cinza */
+        .status-em-cotacao { background-color: #eff6ff; color: #1d4ed8; border-color: #dbeafe; }
+        .status-pendente { background-color: #fff7ed; color: #c2410c; border-color: #ffedd5; }
+        .status-aguardando-recebimento { background-color: #fefce8; color: #a16207; border-color: #fef9c3; }
+        .status-homologacao { background-color: #f5f3ff; color: #6d28d9; border-color: #ede9fe; }
+        .status-concluido { background-color: #f0fdf4; color: #15803d; border-color: #dcfce7; }
+        .status-entrega-parcial { background-color: #fdf8f6; color: #78350f; border-color: #f7e8e1; }
+        .status-nao-iniciada { background-color: #fdf2f8; color: #be185d; border-color: #fce7f3; }
+        .status-recebido-erro { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
+        .status-aguardando-retirada { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
+        .status-cancelado { background-color: #f8fafc; color: #475569; border-color: #f1f5f9; }
 
-        /* Bolinhas de status */
         .dot-em-cotacao { background-color: #3b82f6; }
         .dot-pendente { background-color: #f97316; }
         .dot-aguardando-recebimento { background-color: #eab308; }
@@ -33,9 +31,28 @@
         .dot-recebido-erro { background-color: #ef4444; }
         .dot-aguardando-retirada { background-color: #ef4444; }
         .dot-cancelado { background-color: #64748b; }
+
+        /* Loader */
+        #loadingOverlay {
+            display: flex;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-blur: 4px;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
+
+    <div id="loadingOverlay">
+        <div class="flex flex-col items-center gap-2">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase">Conectando ao Firebase...</p>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
@@ -116,11 +133,13 @@
                     <option value="CANCELADO">Cancelado</option>
                 </select>
             </div>
-            <div class="relative">
-                <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                <button class="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
-                </button>
+            <div class="flex gap-2">
+                <div class="relative">
+                    <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <button class="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -242,99 +261,121 @@
         </div>
     </div>
 
-    <script>
-        // Dados de exemplo atualizados com novos status
-        let data = [
-            { 
-                id: 1, 
-                item: "138.019 CHICOTE CA2X30 LITE V4", 
-                quantidade: 200, 
-                prioridade: "ALTA", 
-                status_compra: "AGUARDANDO RECEBIMENTO", 
-                prazo_entrega: "2026-02-06", 
-                data_solic: "2025-11-26",
-                centro_resultado: "1.2.3 SCM/ESTOQUE",
-                motivo: "REPOSIÇÃO DE ESTOQUE",
-                comprador: "CAROLINE_N",
-                solicitante: "VIVIANY",
-                obs: "Entrega parcial: 170 serão entregues até 30/12"
-            },
-            {
-                id: 2,
-                item: "FONTE DE ALIMENTAÇÃO 12V 5A",
-                quantidade: 50,
-                prioridade: "MEDIA",
-                status_compra: "EM COTAÇÃO",
-                prazo_entrega: "2026-02-28",
-                data_solic: "2026-02-10",
-                centro_resultado: "2.1.0 MANUTENÇÃO",
-                motivo: "PROJETO NOVO",
-                comprador: "RAMON_S",
-                solicitante: "JOÃO SILVA",
-                obs: "Aguardando orçamento de 3 fornecedores"
+    <!-- Firebase SDK Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        // Configurações do Firebase Gestão Compras SCM
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdm59eND0vGg-tFLZ4jv8e9ujhYqG-of8",
+            authDomain: "gestao-compras-scm.firebaseapp.com",
+            projectId: "gestao-compras-scm",
+            storageBucket: "gestao-compras-scm.firebasestorage.app",
+            messagingSenderId: "697232124756",
+            appId: "1:697232124756:web:492fe579789a0904b6f6c1"
+        };
+
+        // Inicialização
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'scm-gestao-compras';
+        const COLLECTION_PATH = ['artifacts', appId, 'public', 'data', 'compras'];
+
+        let data = [];
+        let user = null;
+
+        // Autenticação e Sincronização
+        async function startApp() {
+            try {
+                // Autenticação anônima para acesso seguro aos dados
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (u) => {
+                    user = u;
+                    if (user) {
+                        setupDataSync();
+                    }
+                });
+            } catch (error) {
+                console.error("Auth error:", error);
+                document.getElementById('loadingOverlay').innerHTML = `<p class="text-red-500 font-bold p-10">Erro ao conectar ao Firebase. Verifique se o login anônimo está ativo no Console.</p>`;
             }
-        ];
-
-        function init() {
-            lucide.createIcons();
-            renderTable();
         }
 
-        function calculateSLA(dateSolic, deadline) {
-            if (!dateSolic || !deadline) return 0;
-            const start = new Date(dateSolic);
-            const end = new Date(deadline);
-            const diffTime = Math.abs(end - start);
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        function setupDataSync() {
+            const q = query(collection(db, ...COLLECTION_PATH), orderBy('updatedAt', 'desc'));
+            
+            onSnapshot(q, (snapshot) => {
+                data = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderTable();
+                document.getElementById('loadingOverlay').style.display = 'none';
+                lucide.createIcons();
+            }, (error) => {
+                console.error("Firestore error:", error);
+            });
         }
 
-        function formatDate(str) {
-            if (!str) return '-';
-            const date = new Date(str);
-            if (isNaN(date.getTime())) return str;
-            const offset = date.getTimezoneOffset() * 60000;
-            return new Date(date.getTime() + offset).toLocaleDateString('pt-BR');
-        }
+        // Funções Globais para o formulário
+        window.openModal = (id = null) => {
+            const modal = document.getElementById('modal');
+            const form = document.getElementById('itemForm');
+            const deleteBtn = document.getElementById('deleteBtn');
+            form.reset();
+            
+            if(!id) {
+                document.getElementById('itemDateSolic').value = new Date().toISOString().split('T')[0];
+                document.getElementById('modalTitle').innerText = "Nova Solicitação";
+                document.getElementById('itemStatus').value = "NAO INICIADA";
+                deleteBtn.classList.add('hidden');
+                document.getElementById('editId').value = "";
+            } else {
+                const item = data.find(i => i.id == id);
+                if (!item) return;
+                document.getElementById('editId').value = id;
+                document.getElementById('itemDesc').value = item.item || '';
+                document.getElementById('itemQty').value = item.quantidade || '';
+                document.getElementById('itemPriority').value = item.prioridade || 'MEDIA';
+                document.getElementById('itemBuyer').value = item.comprador || '';
+                document.getElementById('itemDeadline').value = item.prazo_entrega || '';
+                document.getElementById('itemDateSolic').value = item.data_solic || '';
+                document.getElementById('itemCR').value = item.centro_resultado || '';
+                document.getElementById('itemRequester').value = item.solicitante || '';
+                document.getElementById('itemReason').value = item.motivo || '';
+                document.getElementById('itemObs').value = item.obs || '';
+                document.getElementById('itemStatus').value = item.status_compra || 'NAO INICIADA';
+                document.getElementById('modalTitle').innerText = "Editar Solicitação";
+                deleteBtn.classList.remove('hidden');
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
 
-        // Função para retornar a classe CSS baseada no texto do status
-        function getStatusClass(status) {
-            const s = status.toUpperCase();
-            if (s.includes('COTAÇÃO')) return 'status-em-cotacao';
-            if (s.includes('PENDENTE')) return 'status-pendente';
-            if (s.includes('AGUARDANDO RECEBIMENTO')) return 'status-aguardando-recebimento';
-            if (s.includes('HOMOLOGAÇÃO')) return 'status-homologacao';
-            if (s.includes('CONCLUIDO') || s.includes('ENTREGUE')) return 'status-concluido';
-            if (s.includes('PARCIAL')) return 'status-entrega-parcial';
-            if (s.includes('NÃO INICIADA') || s.includes('NAO INICIADA')) return 'status-nao-iniciada';
-            if (s.includes('ERRO')) return 'status-recebido-erro';
-            if (s.includes('RETIRADA')) return 'status-aguardando-retirada';
-            if (s.includes('CANCELADO')) return 'status-cancelado';
-            return 'bg-slate-50 text-slate-500 border-slate-100';
-        }
+        window.closeModal = () => {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+        };
 
-        // Função para retornar a cor da bolinha indicadora
-        function getDotClass(status) {
-            const s = status.toUpperCase();
-            if (s.includes('COTAÇÃO')) return 'dot-em-cotacao';
-            if (s.includes('PENDENTE')) return 'dot-pendente';
-            if (s.includes('AGUARDANDO RECEBIMENTO')) return 'dot-aguardando-recebimento';
-            if (s.includes('HOMOLOGAÇÃO')) return 'dot-homologacao';
-            if (s.includes('CONCLUIDO') || s.includes('ENTREGUE')) return 'dot-concluido';
-            if (s.includes('PARCIAL')) return 'dot-entrega-parcial';
-            if (s.includes('NÃO INICIADA') || s.includes('NAO INICIADA')) return 'dot-nao-iniciada';
-            if (s.includes('ERRO')) return 'dot-recebido-erro';
-            if (s.includes('RETIRADA')) return 'dot-aguardando-retirada';
-            if (s.includes('CANCELADO')) return 'dot-cancelado';
-            return 'bg-slate-300';
-        }
+        window.deleteItem = async () => {
+            const id = document.getElementById('editId').value;
+            if (id && confirm("Deseja realmente excluir este pedido?")) {
+                await deleteDoc(doc(db, ...COLLECTION_PATH, id));
+                closeModal();
+            }
+        };
 
-        function renderTable() {
+        window.renderTable = () => {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const priority = document.getElementById('priorityFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
 
             const filtered = data.filter(i => {
-                const searchStr = (i.item + (i.solicitante || '') + (i.motivo || '') + (i.obs || '')).toLowerCase();
+                const searchStr = ((i.item || '') + (i.solicitante || '') + (i.motivo || '') + (i.obs || '')).toLowerCase();
                 const matchesSearch = searchStr.includes(search);
                 const matchesPriority = priority === 'TODOS' || i.prioridade === priority;
                 const matchesStatus = statusFilter === 'TODOS' || i.status_compra === statusFilter;
@@ -352,7 +393,7 @@
                     <tr class="hover:bg-blue-50/50 transition-colors">
                         <td class="p-4">
                             <div class="flex flex-col">
-                                <span onclick="openModal(${row.id})" class="font-semibold text-slate-800 text-sm cursor-pointer hover:text-blue-600 transition-colors">${row.item}</span>
+                                <span onclick="openModal('${row.id}')" class="font-semibold text-slate-800 text-sm cursor-pointer hover:text-blue-600 transition-colors">${row.item}</span>
                                 <span class="text-[10px] text-slate-400 line-clamp-1 italic">${row.obs || ''}</span>
                             </div>
                         </td>
@@ -387,7 +428,7 @@
                             </div>
                         </td>
                         <td class="p-4 text-center">
-                            <button onclick="openModal(${row.id})" class="text-slate-300 hover:text-blue-600 transition-colors"><i data-lucide="edit" class="w-5 h-5"></i></button>
+                            <button onclick="openModal('${row.id}')" class="text-slate-300 hover:text-blue-600 transition-colors"><i data-lucide="edit" class="w-5 h-5"></i></button>
                         </td>
                     </tr>
                 `;
@@ -395,6 +436,87 @@
 
             updateStats(filtered);
             lucide.createIcons();
+        };
+
+        // Manipulação do Form
+        document.getElementById('itemForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const payload = {
+                item: document.getElementById('itemDesc').value,
+                quantidade: parseInt(document.getElementById('itemQty').value),
+                prioridade: document.getElementById('itemPriority').value,
+                comprador: document.getElementById('itemBuyer').value,
+                prazo_entrega: document.getElementById('itemDeadline').value,
+                data_solic: document.getElementById('itemDateSolic').value,
+                centro_resultado: document.getElementById('itemCR').value,
+                solicitante: document.getElementById('itemRequester').value,
+                motivo: document.getElementById('itemReason').value,
+                obs: document.getElementById('itemObs').value,
+                status_compra: document.getElementById('itemStatus').value,
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, ...COLLECTION_PATH, id), payload);
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, ...COLLECTION_PATH), payload);
+                }
+                closeModal();
+            } catch (err) {
+                console.error("Erro ao salvar:", err);
+                alert("Erro ao salvar dados no Firebase. Verifique sua conexão ou configurações.");
+            }
+        };
+
+        // Helper functions
+        function calculateSLA(dateSolic, deadline) {
+            if (!dateSolic || !deadline) return 0;
+            const start = new Date(dateSolic);
+            const end = new Date(deadline);
+            if(isNaN(start) || isNaN(end)) return 0;
+            const diffTime = Math.abs(end - start);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function formatDate(str) {
+            if (!str) return '-';
+            const date = new Date(str);
+            if (isNaN(date.getTime())) return str;
+            const offset = date.getTimezoneOffset() * 60000;
+            return new Date(date.getTime() + offset).toLocaleDateString('pt-BR');
+        }
+
+        function getStatusClass(status) {
+            const s = status ? status.toUpperCase() : '';
+            if (s.includes('COTAÇÃO')) return 'status-em-cotacao';
+            if (s.includes('PENDENTE')) return 'status-pendente';
+            if (s.includes('RECEBIMENTO')) return 'status-aguardando-recebimento';
+            if (s.includes('HOMOLOGAÇÃO')) return 'status-homologacao';
+            if (s.includes('CONCLUIDO')) return 'status-concluido';
+            if (s.includes('PARCIAL')) return 'status-entrega-parcial';
+            if (s.includes('NAO INICIADA')) return 'status-nao-iniciada';
+            if (s.includes('ERRO')) return 'status-recebido-erro';
+            if (s.includes('RETIRADA')) return 'status-aguardando-retirada';
+            if (s.includes('CANCELADO')) return 'status-cancelado';
+            return 'bg-slate-50 text-slate-500 border-slate-100';
+        }
+
+        function getDotClass(status) {
+            const s = status ? status.toUpperCase() : '';
+            if (s.includes('COTAÇÃO')) return 'dot-em-cotacao';
+            if (s.includes('PENDENTE')) return 'dot-pendente';
+            if (s.includes('RECEBIMENTO')) return 'dot-aguardando-recebimento';
+            if (s.includes('HOMOLOGAÇÃO')) return 'dot-homologacao';
+            if (s.includes('CONCLUIDO')) return 'dot-concluido';
+            if (s.includes('PARCIAL')) return 'dot-entrega-parcial';
+            if (s.includes('NAO INICIADA')) return 'dot-nao-iniciada';
+            if (s.includes('ERRO')) return 'dot-recebido-erro';
+            if (s.includes('RETIRADA')) return 'dot-aguardando-retirada';
+            if (s.includes('CANCELADO')) return 'dot-cancelado';
+            return 'bg-slate-300';
         }
 
         function updateStats(filtered) {
@@ -407,92 +529,17 @@
             document.getElementById('stat-sla').innerText = avgSLA + 'd';
         }
 
-        function openModal(id = null) {
-            const modal = document.getElementById('modal');
-            const form = document.getElementById('itemForm');
-            const deleteBtn = document.getElementById('deleteBtn');
-            form.reset();
-            
-            if(!id) {
-                document.getElementById('itemDateSolic').value = new Date().toISOString().split('T')[0];
-                document.getElementById('modalTitle').innerText = "Nova Solicitação";
-                document.getElementById('itemStatus').value = "NAO INICIADA";
-                deleteBtn.classList.add('hidden');
-                document.getElementById('editId').value = "";
-            } else {
-                const item = data.find(i => i.id == id);
-                document.getElementById('editId').value = id;
-                document.getElementById('itemDesc').value = item.item;
-                document.getElementById('itemQty').value = item.quantidade;
-                document.getElementById('itemPriority').value = item.prioridade;
-                document.getElementById('itemBuyer').value = item.comprador || '';
-                document.getElementById('itemDeadline').value = item.prazo_entrega || '';
-                document.getElementById('itemDateSolic').value = item.data_solic || '';
-                document.getElementById('itemCR').value = item.centro_resultado || '';
-                document.getElementById('itemRequester').value = item.solicitante || '';
-                document.getElementById('itemReason').value = item.motivo || '';
-                document.getElementById('itemObs').value = item.obs || '';
-                document.getElementById('itemStatus').value = item.status_compra;
-                document.getElementById('modalTitle').innerText = "Editar Solicitação";
-                deleteBtn.classList.remove('hidden');
-            }
-            
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
-        }
-
-        document.getElementById('itemForm').onsubmit = function(e) {
-            e.preventDefault();
-            const id = document.getElementById('editId').value;
-            const payload = {
-                item: document.getElementById('itemDesc').value,
-                quantidade: document.getElementById('itemQty').value,
-                prioridade: document.getElementById('itemPriority').value,
-                comprador: document.getElementById('itemBuyer').value,
-                prazo_entrega: document.getElementById('itemDeadline').value,
-                data_solic: document.getElementById('itemDateSolic').value,
-                centro_resultado: document.getElementById('itemCR').value,
-                solicitante: document.getElementById('itemRequester').value,
-                motivo: document.getElementById('itemReason').value,
-                obs: document.getElementById('itemObs').value,
-                status_compra: document.getElementById('itemStatus').value
-            };
-
-            if (id) {
-                data = data.map(i => i.id == id ? { ...i, ...payload } : i);
-            } else {
-                data.unshift({ id: Date.now(), ...payload });
-            }
-            
-            closeModal();
-            renderTable();
-        };
-
-        function deleteItem() {
-            const id = document.getElementById('editId').value;
-            if (confirm("Tem certeza que deseja excluir esta solicitação?")) {
-                data = data.filter(i => i.id != id);
-                closeModal();
-                renderTable();
-            }
-        }
-
-        function handleFileUpload(e) {
+        // CSV Upload aprimorado para Firebase
+        window.handleFileUpload = (e) => {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = async function(event) {
                 const lines = event.target.result.split('\n');
-                const newData = lines.slice(1).map((line, idx) => {
+                const batchItems = lines.slice(1).map((line) => {
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (cols.length < 5) return null;
                     
                     return {
-                        id: Date.now() + idx,
                         item: (cols[1] || "").replace(/"/g, '').trim(),
                         quantidade: parseInt(cols[2]) || 0,
                         prioridade: (cols[3] || "MEDIA").toUpperCase().trim(),
@@ -503,17 +550,21 @@
                         prazo_entrega: (cols[12] || "").trim(),
                         obs: (cols[19] || cols[15] || "").replace(/"/g, '').trim(),
                         solicitante: (cols[17] || "").trim(),
-                        comprador: (cols[18] || "").trim()
+                        comprador: (cols[18] || "").trim(),
+                        updatedAt: serverTimestamp(),
+                        createdAt: serverTimestamp()
                     };
                 }).filter(x => x && x.item);
-                
-                data = [...newData, ...data];
-                renderTable();
+
+                for(const item of batchItems) {
+                    await addDoc(collection(db, ...COLLECTION_PATH), item);
+                }
+                alert(`${batchItems.length} registros importados para o Firebase com sucesso!`);
             };
             reader.readAsText(file);
-        }
+        };
 
-        window.onload = init;
+        startApp();
     </script>
 </body>
 </html>
