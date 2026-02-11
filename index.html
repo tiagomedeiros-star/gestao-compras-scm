@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracker Hub - Gestão de Stock</title>
-    <!-- Tailwind CSS para o design -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -15,7 +13,9 @@
         .tab-content.active { display: block; }
         .sidebar-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        #edit-modal { transition: opacity 0.2s ease-in-out; }
+        .img-preview { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; background: #f1f5f9; border: 1px solid #e2e8f0; }
+        .upload-area { border: 2px dashed #cbd5e1; transition: all 0.2s; cursor: pointer; }
+        .upload-area:hover { border-color: #3b82f6; background: #eff6ff; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col md:flex-row">
@@ -23,7 +23,7 @@
     <!-- Sidebar -->
     <aside class="w-full md:w-64 bg-slate-900 text-slate-400 flex flex-col shadow-2xl">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <i data-lucide="truck" class="text-blue-500"></i>
+            <i data-lucide="package" class="text-blue-500"></i>
             <h1 class="text-white font-black text-xl tracking-tighter">TRACKER HUB</h1>
         </div>
         <nav class="p-4 flex-1 space-y-1">
@@ -40,13 +40,11 @@
                 <i data-lucide="list-checks" size="18"></i> Histórico
             </button>
         </nav>
-        <div id="user-info" class="p-4 text-[10px] text-slate-600 border-t border-slate-800 uppercase tracking-widest">
-            Iniciando...
-        </div>
+        <div id="user-info" class="p-4 text-[10px] text-slate-600 border-t border-slate-800 uppercase tracking-widest">Iniciando...</div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:p-10 overflow-y-auto relative h-screen">
+    <main class="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
         <header class="flex justify-between items-center mb-8">
             <h2 id="page-title" class="text-2xl font-black text-slate-800 uppercase tracking-tight">Status do Estoque</h2>
             <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
@@ -57,56 +55,61 @@
 
         <!-- Dashboard -->
         <div id="dashboard" class="tab-content active space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Remanufatura</p>
-                    <h3 id="stat-reman" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-slate-800">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total Itens</p>
+                    <h3 id="stat-total" class="text-2xl font-black text-slate-800">0</h3>
                 </div>
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Equip. Retorno</p>
-                    <h3 id="stat-retorno" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Pronto Uso</p>
+                    <h3 id="stat-pronto" class="text-2xl font-black text-slate-800">0</h3>
                 </div>
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-500">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Estoque Classe A</p>
-                    <h3 id="stat-class-a" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-500">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Classe A</p>
+                    <h3 id="stat-class-a" class="text-2xl font-black text-slate-800">0</h3>
                 </div>
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-red-500">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Total Baixo (Mínimo)</p>
-                    <h3 id="stat-alerta" class="text-3xl font-black text-red-600 mt-1">0</h3>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Remanuf.</p>
+                    <h3 id="stat-reman" class="text-2xl font-black text-slate-800">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Retorno</p>
+                    <h3 id="stat-retorno" class="text-2xl font-black text-slate-800">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-red-500">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Baixo Mín.</p>
+                    <h3 id="stat-alerta" class="text-2xl font-black text-red-600">0</h3>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                            <th class="p-4 font-bold text-slate-600">Material</th>
-                            <th class="p-4 text-center text-slate-600">Classe</th>
-                            <th class="p-4 text-center text-slate-600">Status Geral</th>
-                            <th class="p-4 text-center text-slate-900 bg-slate-100 font-black">Total</th>
-                            <th class="p-4 text-center text-emerald-600">Pronto</th>
-                            <th class="p-4 text-center text-blue-600">Reman</th>
-                            <th class="p-4 text-center text-amber-600">Retorno</th>
-                            <th class="p-4 text-center text-slate-400">Min/Max</th>
-                            <th class="p-4 text-center text-slate-400">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventory-table-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="9" class="p-10 text-center text-slate-400 italic">Sincronizando...</td></tr>
-                    </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="p-4 font-bold text-slate-600">Equipamento</th>
+                                <th class="p-4 text-center text-slate-600">Classe</th>
+                                <th class="p-4 text-center text-slate-900 bg-slate-100 font-black">Total</th>
+                                <th class="p-4 text-center text-emerald-600">Pronto</th>
+                                <th class="p-4 text-center text-blue-600">Reman</th>
+                                <th class="p-4 text-center text-amber-600">Retorno</th>
+                                <th class="p-4 text-center text-slate-400">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- Movimentação -->
         <div id="movements" class="tab-content max-w-2xl mx-auto space-y-6">
             <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-700 mb-6 border-b pb-2">Registrar Movimentação</h3>
-                
+                <h3 class="text-lg font-bold text-slate-700 mb-6 border-b pb-2 uppercase tracking-tighter">Registrar Operação</h3>
                 <div class="grid grid-cols-1 gap-4 mb-6">
-                    <label class="text-xs font-bold text-slate-400 uppercase">Produto Selecionado</label>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Equipamento</label>
                     <select id="trans-item" class="p-3 border-2 border-slate-100 rounded-lg bg-slate-50 font-bold outline-none focus:border-blue-500">
-                        <option value="">Aguardando itens...</option>
+                        <option value="">Aguardando...</option>
                     </select>
                     
                     <div class="flex gap-2 p-1 bg-slate-100 rounded-xl mt-2">
@@ -116,10 +119,9 @@
                     </div>
                 </div>
 
-                <!-- Locais Dinâmicos: Agora visíveis para Entrada, Saída e Transferência -->
                 <div id="location-options" class="grid grid-cols-2 gap-4 mb-6">
                     <div id="container-origin">
-                        <label class="text-[10px] uppercase font-bold text-slate-400" id="label-origin">Origem</label>
+                        <label class="text-[10px] uppercase font-bold text-slate-400">Origem</label>
                         <select id="trans-from" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500">
                             <option value="stockPronto">Pronto Uso</option>
                             <option value="stockReman">Remanufatura</option>
@@ -127,7 +129,7 @@
                         </select>
                     </div>
                     <div id="container-destination">
-                        <label class="text-[10px] uppercase font-bold text-slate-400" id="label-destination">Destino</label>
+                        <label class="text-[10px] uppercase font-bold text-slate-400">Destino</label>
                         <select id="trans-to" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500">
                             <option value="stockPronto">Pronto Uso</option>
                             <option value="stockReman">Remanufatura</option>
@@ -137,281 +139,229 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Quantidade</label>
-                        <input type="number" id="trans-qty" placeholder="1" value="1" min="1" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Observação</label>
-                        <input type="text" id="trans-reason" placeholder="Obs / Placa / OS" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
-                    </div>
+                    <input type="number" id="trans-qty" value="1" min="1" class="p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500" placeholder="Qtd">
+                    <input type="text" id="trans-reason" placeholder="Observação" class="p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
                 </div>
-                <button onclick="handleTransaction()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest mt-6 hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200">Confirmar Operação</button>
+                <button onclick="handleTransaction()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest mt-6 hover:bg-blue-700 transition-all">Confirmar Operação</button>
             </div>
         </div>
 
-        <!-- Novo Equipamento -->
+        <!-- Novo Cadastro -->
         <div id="new" class="tab-content max-w-lg mx-auto">
             <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
-                <h3 class="text-lg font-bold text-slate-700 mb-2 border-b pb-2">Cadastrar Novo Item</h3>
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase">Descrição do Equipamento</label>
-                    <input type="text" id="new-name" placeholder="Ex: Suntech ST310U" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500">
-                </div>
+                <h3 class="text-lg font-bold text-slate-700 border-b pb-2 uppercase tracking-tighter">Novo Item</h3>
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase">Tipo de Material</label>
-                        <select id="new-type" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
-                            <option value="Insumo">Insumo</option>
-                            <option value="Ferramenta">Ferramenta</option>
-                            <option value="Locação">Locação</option>
-                            <option value="Cartão">Cartão</option>
-                        </select>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase">Classificação</label>
-                        <select id="new-classification" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
-                            <option value="A">Classe A</option>
-                            <option value="B">Classe B</option>
-                            <option value="C">Classe C</option>
-                            <option value="D">Classe D</option>
-                        </select>
+                <!-- Upload de Foto -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Foto do Equipamento</label>
+                    <div onclick="document.getElementById('new-file').click()" class="upload-area rounded-xl p-4 flex flex-col items-center justify-center gap-2">
+                        <img id="new-preview" class="hidden w-24 h-24 object-cover rounded-lg shadow-sm border-2 border-white mb-2" src="">
+                        <div id="upload-placeholder" class="text-center">
+                            <i data-lucide="camera" class="mx-auto text-slate-400 mb-1"></i>
+                            <p class="text-[11px] font-bold text-slate-500">Clique para escolher foto</p>
+                        </div>
+                        <input type="file" id="new-file" accept="image/*" class="hidden" onchange="handleFile(this, 'new-preview', 'upload-placeholder')">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Mínimo</label>
-                        <input type="number" id="new-min" value="5" class="w-full p-4 border-2 border-slate-100 rounded-xl">
+                <div class="space-y-4">
+                    <input type="text" id="new-name" placeholder="Nome do Equipamento" class="w-full p-4 border-2 border-slate-100 rounded-xl font-bold">
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="new-type" class="p-4 border-2 border-slate-100 rounded-xl bg-white font-bold">
+                            <option value="Insumo">Insumo</option><option value="Ferramenta">Ferramenta</option><option value="Locação">Locação</option>
+                        </select>
+                        <select id="new-classification" class="p-4 border-2 border-slate-100 rounded-xl bg-white font-bold">
+                            <option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option>
+                        </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Máximo</label>
-                        <input type="number" id="new-max" value="20" class="w-full p-4 border-2 border-slate-100 rounded-xl">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="number" id="new-min" value="5" class="p-4 border-2 border-slate-100 rounded-xl" placeholder="Mínimo">
+                        <input type="number" id="new-max" value="20" class="p-4 border-2 border-slate-100 rounded-xl" placeholder="Máximo">
                     </div>
                 </div>
-                <button onclick="addNewItem()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest hover:bg-blue-700 transition-all">Salvar no Inventário</button>
+                <button onclick="addNewItem()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest hover:bg-blue-700">Cadastrar</button>
             </div>
         </div>
 
         <!-- Histórico -->
         <div id="history" class="tab-content">
-            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xl">
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900 border-b border-slate-800">
-                        <tr class="text-[10px] uppercase text-slate-500 font-bold">
-                            <th class="p-4">Data e Hora</th>
-                            <th class="p-4">Tipo</th>
-                            <th class="p-4">Equipamento</th>
-                            <th class="p-4 text-center">Qtd</th>
-                            <th class="p-4">Detalhes</th>
+                    <thead class="bg-slate-900 text-white">
+                        <tr class="text-[10px] uppercase font-bold">
+                            <th class="p-4">Data</th><th class="p-4">Tipo</th><th class="p-4">Equipamento</th><th class="p-4 text-center">Qtd</th><th class="p-4">Obs</th>
                         </tr>
                     </thead>
-                    <tbody id="history-table-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="5" class="p-10 text-center text-slate-400">Aguardando registros...</td></tr>
-                    </tbody>
+                    <tbody id="history-table-body" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <!-- Modal de Edição -->
+    <!-- Modal Edição -->
     <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div class="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Editar Item</h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="20"></i></button>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-red-500"><i data-lucide="x" size="20"></i></button>
             </div>
             <div class="p-6 space-y-4">
                 <input type="hidden" id="edit-id">
-                <div>
-                    <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Nome</label>
-                    <input id="edit-name" type="text" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Tipo</label>
-                        <select id="edit-type" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold bg-white">
-                            <option value="Insumo">Insumo</option>
-                            <option value="Ferramenta">Ferramenta</option>
-                            <option value="Locação">Locação</option>
-                            <option value="Cartão">Cartão</option>
-                        </select>
+                
+                <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
+                    <div class="relative group">
+                        <img id="edit-preview" class="w-20 h-20 object-cover rounded-lg border-2 border-white shadow-md" src="">
+                        <button onclick="document.getElementById('edit-file').click()" class="absolute inset-0 bg-black/30 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                            <i data-lucide="camera" size="20"></i>
+                        </button>
+                        <input type="file" id="edit-file" accept="image/*" class="hidden" onchange="handleFile(this, 'edit-preview')">
                     </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Classificação</label>
-                        <select id="edit-classification" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold bg-white">
-                            <option value="A">Classe A</option>
-                            <option value="B">Classe B</option>
-                            <option value="C">Classe C</option>
-                            <option value="D">Classe D</option>
-                        </select>
+                    <div class="flex-1">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alterar Imagem</p>
+                        <p class="text-[11px] text-slate-500">Clique na miniatura para selecionar novo ficheiro.</p>
                     </div>
                 </div>
+
+                <input id="edit-name" type="text" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold" placeholder="Nome">
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Mínimo</label>
-                        <input id="edit-min" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Máximo</label>
-                        <input id="edit-max" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg">
-                    </div>
+                    <select id="edit-type" class="p-3 border-2 border-slate-100 rounded-lg">
+                        <option value="Insumo">Insumo</option><option value="Ferramenta">Ferramenta</option><option value="Locação">Locação</option>
+                    </select>
+                    <select id="edit-classification" class="p-3 border-2 border-slate-100 rounded-lg">
+                        <option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input id="edit-min" type="number" class="p-3 border-2 border-slate-100 rounded-lg" placeholder="Mínimo">
+                    <input id="edit-max" type="number" class="p-3 border-2 border-slate-100 rounded-lg" placeholder="Máximo">
                 </div>
             </div>
-            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                <button onclick="closeEditModal()" class="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">Cancelar</button>
-                <button onclick="saveEditItem()" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-lg">Salvar</button>
+            <div class="p-4 bg-slate-50 flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
+                <button onclick="saveEditItem()" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-lg">Salvar Alterações</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyATO-PdFidpnuPrPMq36oKTDFlpSxbsxDA",
-            authDomain: "meuestoquerastreadores.firebaseapp.com",
-            projectId: "meuestoquerastreadores",
-            storageBucket: "meuestoquerastreadores.firebasestorage.app",
-            messagingSenderId: "808134691039",
-            appId: "1:808134691039:web:c7af29edeea9b3e202016a",
-            measurementId: "G-1EYY1DYQXR"
-        };
-
+        const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        const appId = 'rastreadores-main-db';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rastreadores-hub-prod';
 
         let currentInventory = [];
-        let currentUser = null;
         let currentTransactionType = 'in';
+        let isAuth = false;
 
-        const updateStatus = (text, color) => {
-            const dot = document.getElementById('connection-status-dot');
-            if(dot) dot.className = `status-dot ${color}`;
-            const label = document.getElementById('connection-status-text');
-            if(label) label.innerText = text;
+        // Utilitário para ler arquivo do computador (Base64)
+        window.handleFile = (input, previewId, placeholderId) => {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById(previewId);
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                    if(placeholderId) document.getElementById(placeholderId).classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
         };
 
         const initSession = async () => {
-            try { await signInAnonymously(auth); } catch (err) { updateStatus("Erro Acesso", "bg-red-500"); }
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
         };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                currentUser = user;
-                document.getElementById('user-info').innerText = `ID: ${user.uid.substring(0,6)} (Online)`;
-                updateStatus("Sincronizado", "bg-emerald-500");
-                startListening();
+                isAuth = true;
+                document.getElementById('user-info').innerText = `ID: ${user.uid.substring(0,6)}`;
+                document.getElementById('connection-status-dot').className = "status-dot bg-emerald-500";
+                document.getElementById('connection-status-text').innerText = "ONLINE";
+                startSync();
+            } else {
+                initSession();
             }
         });
 
-        function startListening() {
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), (snap) => {
+        function startSync() {
+            const path = (coll) => collection(db, 'artifacts', appId, 'public', 'data', coll);
+            
+            onSnapshot(path('inventory'), (snap) => {
                 currentInventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderInventory();
-                updateSelects();
-                updateStats();
-            });
+                renderUI();
+            }, err => console.error(err));
 
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (snap) => {
+            onSnapshot(path('history'), (snap) => {
                 const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                                  .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                 renderHistory(logs);
             });
         }
 
-        function renderInventory() {
+        function renderUI() {
             const body = document.getElementById('inventory-table-body');
-            if(!body) return;
             body.innerHTML = currentInventory.map(item => {
-                const pronto = item.stockPronto || 0;
-                const reman = item.stockReman || 0;
-                const retorno = item.stockRetorno || 0;
+                const pronto = item.stockPronto || 0, reman = item.stockReman || 0, retorno = item.stockRetorno || 0;
                 const total = pronto + reman + retorno;
-                const min = item.minStock || 0;
-                const classification = item.classification || 'C';
-
-                let statusLabel = total < min ? "Baixo" : "Controlado";
-                let statusClasses = total < min ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700";
-
+                const alerta = total < (item.minStock || 0);
+                const placeholder = 'https://via.placeholder.com/150?text=Item';
                 return `
-                    <tr class="hover:bg-slate-50 border-b border-slate-50 transition-colors">
-                        <td class="p-4 font-bold text-slate-700">${item.name}</td>
-                        <td class="p-4 text-center"><span class="w-6 h-6 inline-flex items-center justify-center rounded-full bg-slate-100 font-bold text-[10px] border">${classification}</span></td>
-                        <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase border ${statusClasses}">${statusLabel}</span></td>
-                        <td class="p-4 text-center font-black bg-slate-50 text-base">${total}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <img src="${item.imageUrl || placeholder}" class="img-preview shadow-sm" onerror="this.src='${placeholder}'">
+                                <div>
+                                    <p class="font-bold text-slate-800">${item.name}</p>
+                                    <p class="text-[10px] text-slate-400 uppercase">${item.type || 'Insumo'}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center"><span class="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black">${item.classification || 'C'}</span></td>
+                        <td class="p-4 text-center font-black ${alerta ? 'text-red-600' : 'text-slate-800'}">${total}</td>
                         <td class="p-4 text-center font-bold text-emerald-600">${pronto}</td>
                         <td class="p-4 text-center font-bold text-blue-500">${reman}</td>
                         <td class="p-4 text-center font-bold text-amber-500">${retorno}</td>
-                        <td class="p-4 text-center text-slate-400 text-[10px]">${min} / ${item.maxStock || '-'}</td>
                         <td class="p-4 text-center">
-                            <button onclick="openEditModal('${item.id}', '${item.name}', ${min}, ${item.maxStock || 0}, '${item.type}', '${classification}')" class="text-slate-300 hover:text-blue-500 p-1"><i data-lucide="pencil" size="16"></i></button>
+                            <button onclick="openEditModal('${item.id}')" class="text-slate-300 hover:text-blue-500"><i data-lucide="pencil" size="16"></i></button>
                         </td>
                     </tr>`;
             }).join('');
+            
+            updateStats();
+            updateSelects();
             lucide.createIcons();
         }
 
-        function renderHistory(logs) {
-            const body = document.getElementById('history-table-body');
-            body.innerHTML = logs.slice(0, 15).map(h => `
-                <tr class="text-xs">
-                    <td class="p-4 text-slate-400">${h.date || '-'}</td>
-                    <td class="p-4 font-black ${h.action === 'Entrada' ? 'text-emerald-500' : 'text-red-500'} uppercase">${h.action}</td>
-                    <td class="p-4 font-bold">${h.item}</td>
-                    <td class="p-4 text-center font-black">${h.qty || '-'}</td>
-                    <td class="p-4 text-slate-500">${h.detail || '-'}</td>
-                </tr>`).join('');
-        }
-
-        function updateSelects() {
-            const select = document.getElementById('trans-item');
-            const current = select.value;
-            select.innerHTML = '<option value="">Escolha o equipamento...</option>' + currentInventory.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-            select.value = current;
-        }
-
         function updateStats() {
+            const pronto = currentInventory.reduce((a,c) => a + (c.stockPronto || 0), 0);
             const reman = currentInventory.reduce((a,c) => a + (c.stockReman || 0), 0);
             const retorno = currentInventory.reduce((a,c) => a + (c.stockRetorno || 0), 0);
-            const classA = currentInventory.filter(i => (i.classification || '').toUpperCase() === 'A').reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
+            const classA = currentInventory.filter(i => i.classification === 'A').reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
             const alertas = currentInventory.filter(i => ((i.stockPronto || 0) + (i.stockReman || 0) + (i.stockRetorno || 0)) < (i.minStock || 0)).length;
-            
+
+            document.getElementById('stat-total').innerText = pronto + reman + retorno;
+            document.getElementById('stat-pronto').innerText = pronto;
             document.getElementById('stat-reman').innerText = reman;
             document.getElementById('stat-retorno').innerText = retorno;
             document.getElementById('stat-class-a').innerText = classA;
             document.getElementById('stat-alerta').innerText = alertas;
         }
 
-        window.openEditModal = (id, name, min, max, type, classif) => {
-            document.getElementById('edit-id').value = id;
-            document.getElementById('edit-name').value = name;
-            document.getElementById('edit-min').value = min;
-            document.getElementById('edit-max').value = max;
-            document.getElementById('edit-type').value = type || 'Insumo';
-            document.getElementById('edit-classification').value = classif || 'C';
-            document.getElementById('edit-modal').classList.remove('hidden');
-        };
-
-        window.closeEditModal = () => document.getElementById('edit-modal').classList.add('hidden');
-
-        window.saveEditItem = async () => {
-            const id = document.getElementById('edit-id').value;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), {
-                name: document.getElementById('edit-name').value,
-                minStock: parseInt(document.getElementById('edit-min').value),
-                maxStock: parseInt(document.getElementById('edit-max').value),
-                type: document.getElementById('edit-type').value,
-                classification: document.getElementById('edit-classification').value
-            });
-            closeEditModal();
+        window.updateSelects = () => {
+            const select = document.getElementById('trans-item');
+            const current = select.value;
+            select.innerHTML = '<option value="">Selecione...</option>' + currentInventory.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+            select.value = current;
         };
 
         window.setTransType = (type) => {
@@ -423,87 +373,109 @@
             const btn = document.getElementById(`type-${type}`);
             const colors = { in: 'text-emerald-600', out: 'text-red-600', transfer: 'text-blue-600' };
             btn.classList.add('bg-white', 'shadow-md', colors[type]);
-            btn.classList.remove('text-slate-500');
-
-            // Ajuste dos Labels e containers baseado no tipo
-            const containerOrigin = document.getElementById('container-origin');
-            const containerDestination = document.getElementById('container-destination');
-            const labelOrigin = document.getElementById('label-origin');
-            const labelDestination = document.getElementById('label-destination');
-
-            if (type === 'in') {
-                containerOrigin.classList.add('hidden'); // Na entrada não precisa de origem
-                containerDestination.classList.remove('hidden');
-                labelDestination.innerText = "Destino do Equipamento";
-            } else if (type === 'out') {
-                containerOrigin.classList.remove('hidden');
-                containerDestination.classList.add('hidden'); // Na saída não precisa de destino
-                labelOrigin.innerText = "Retirar de (Origem)";
-            } else {
-                containerOrigin.classList.remove('hidden');
-                containerDestination.classList.remove('hidden');
-                labelOrigin.innerText = "Origem";
-                labelDestination.innerText = "Destino";
-            }
+            
+            document.getElementById('container-origin').style.display = type === 'in' ? 'none' : 'block';
+            document.getElementById('container-destination').style.display = type === 'out' ? 'none' : 'block';
         };
 
         window.addNewItem = async () => {
             const name = document.getElementById('new-name').value;
-            if(!name) return;
+            if(!name || !isAuth) return;
+            
             await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), {
-                name, minStock: parseInt(document.getElementById('new-min').value) || 0,
+                name, 
+                imageUrl: document.getElementById('new-preview').src || '',
+                minStock: parseInt(document.getElementById('new-min').value) || 0,
                 maxStock: parseInt(document.getElementById('new-max').value) || 0,
                 type: document.getElementById('new-type').value,
                 classification: document.getElementById('new-classification').value,
                 stockPronto: 0, stockReman: 0, stockRetorno: 0, timestamp: serverTimestamp()
             });
+
+            // Reset form
             document.getElementById('new-name').value = '';
+            document.getElementById('new-preview').src = '';
+            document.getElementById('new-preview').classList.add('hidden');
+            document.getElementById('upload-placeholder').classList.remove('hidden');
             showTab('dashboard');
         };
 
         window.handleTransaction = async () => {
             const id = document.getElementById('trans-item').value;
             const qty = parseInt(document.getElementById('trans-qty').value);
-            const reason = document.getElementById('trans-reason').value;
-            if(!id || isNaN(qty) || qty <= 0) return;
+            if(!id || isNaN(qty) || qty <= 0 || !isAuth) return;
 
             const item = currentInventory.find(i => i.id === id);
-            const data = { ...item }; delete data.id;
+            const update = { ...item }; delete update.id;
 
             if (currentTransactionType === 'in') {
                 const to = document.getElementById('trans-to').value;
-                data[to] = (data[to] || 0) + qty;
+                update[to] = (update[to] || 0) + qty;
             } else if (currentTransactionType === 'out') {
                 const from = document.getElementById('trans-from').value;
-                if((data[from] || 0) < qty) return alert("Saldo insuficiente!");
-                data[from] -= qty;
+                if((update[from] || 0) < qty) return alert("Sem estoque!");
+                update[from] -= qty;
             } else {
-                const from = document.getElementById('trans-from').value;
-                const to = document.getElementById('trans-to').value;
-                if(from === to) return alert("Origem e Destino iguais.");
-                if((data[from] || 0) < qty) return alert("Saldo insuficiente na origem!");
-                data[from] -= qty;
-                data[to] = (data[to] || 0) + qty;
+                const f = document.getElementById('trans-from').value, t = document.getElementById('trans-to').value;
+                if(f === t || (update[f] || 0) < qty) return alert("Erro na transferência!");
+                update[f] -= qty; update[t] = (update[t] || 0) + qty;
             }
 
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), data);
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), update);
             await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), {
-                item: item.name, action: currentTransactionType === 'in' ? 'Entrada' : (currentTransactionType === 'out' ? 'Saída' : 'Transferência'),
-                qty, detail: reason, date: new Date().toLocaleString('pt-PT'), timestamp: serverTimestamp()
+                item: item.name, action: currentTransactionType === 'in' ? 'Entrada' : (currentTransactionType === 'out' ? 'Saída' : 'Transf'),
+                qty, detail: document.getElementById('trans-reason').value, date: new Date().toLocaleString(), timestamp: serverTimestamp()
             });
             showTab('dashboard');
         };
 
+        window.openEditModal = (id) => {
+            const item = currentInventory.find(i => i.id === id);
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = item.name;
+            document.getElementById('edit-preview').src = item.imageUrl || '';
+            document.getElementById('edit-min').value = item.minStock;
+            document.getElementById('edit-max').value = item.maxStock;
+            document.getElementById('edit-type').value = item.type;
+            document.getElementById('edit-classification').value = item.classification;
+            document.getElementById('edit-modal').classList.remove('hidden');
+            lucide.createIcons();
+        };
+
+        window.saveEditItem = async () => {
+            const id = document.getElementById('edit-id').value;
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), {
+                name: document.getElementById('edit-name').value,
+                imageUrl: document.getElementById('edit-preview').src,
+                minStock: parseInt(document.getElementById('edit-min').value),
+                maxStock: parseInt(document.getElementById('edit-max').value),
+                type: document.getElementById('edit-type').value,
+                classification: document.getElementById('edit-classification').value
+            });
+            closeEditModal();
+        };
+
+        window.closeEditModal = () => document.getElementById('edit-modal').classList.add('hidden');
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById(`btn-${id}`).classList.add('active');
-            if (id === 'movements') setTransType(currentTransactionType);
             lucide.createIcons();
         };
 
-        initSession();
+        function renderHistory(logs) {
+            document.getElementById('history-table-body').innerHTML = logs.slice(0, 20).map(h => `
+                <tr class="text-[11px]">
+                    <td class="p-4 text-slate-400 font-mono">${h.date}</td>
+                    <td class="p-4 font-black ${h.action === 'Entrada' ? 'text-emerald-500' : 'text-red-500'}">${h.action}</td>
+                    <td class="p-4 font-bold">${h.item}</td>
+                    <td class="p-4 text-center font-black">${h.qty}</td>
+                    <td class="p-4 text-slate-500">${h.detail || '-'}</td>
+                </tr>`).join('');
+        }
+
+        setTransType('in');
         lucide.createIcons();
     </script>
 </body>
