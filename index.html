@@ -1,588 +1,728 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Compras</title>
+    <title>CONTROLE DE ESTOQUE - SCM</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fade-in 0.3s; }
+        .sidebar-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         
-        .status-em-cotacao { background-color: #eff6ff; color: #1d4ed8; border-color: #dbeafe; }
-        .status-pendente { background-color: #fff7ed; color: #c2410c; border-color: #ffedd5; }
-        .status-aguardando-recebimento { background-color: #fefce8; color: #a16207; border-color: #fef9c3; }
-        .status-homologacao { background-color: #f5f3ff; color: #6d28d9; border-color: #ede9fe; }
-        .status-concluido { background-color: #f0fdf4; color: #15803d; border-color: #dcfce7; }
-        .status-entrega-parcial { background-color: #fdf8f6; color: #78350f; border-color: #f7e8e1; }
-        .status-nao-iniciada { background-color: #fdf2f8; color: #be185d; border-color: #fce7f3; }
-        .status-recebido-erro { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
-        .status-aguardando-retirada { background-color: #fef2f2; color: #b91c1c; border-color: #fee2e2; }
-        .status-cancelado { background-color: #f8fafc; color: #475569; border-color: #f1f5f9; }
-
-        .dot-em-cotacao { background-color: #3b82f6; }
-        .dot-pendente { background-color: #f97316; }
-        .dot-aguardando-recebimento { background-color: #eab308; }
-        .dot-homologacao { background-color: #8b5cf6; }
-        .dot-concluido { background-color: #22c55e; }
-        .dot-entrega-parcial { background-color: #92400e; }
-        .dot-nao-iniciada { background-color: #ec4899; }
-        .dot-recebido-erro { background-color: #ef4444; }
-        .dot-aguardando-retirada { background-color: #ef4444; }
-        .dot-cancelado { background-color: #64748b; }
-
-        /* Loader */
-        #loadingOverlay {
-            display: flex;
-            position: fixed;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.8);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            backdrop-blur: 4px;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
+        .toast { animation: slideIn 0.3s ease-out forwards; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
+<body class="bg-slate-50 min-h-screen flex flex-col md:flex-row text-slate-800">
 
-    <div id="loadingOverlay">
-        <div class="flex flex-col items-center gap-2">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase">Conectando ao Firebase...</p>
+    <!-- Container de Notificações -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-400 flex flex-col shadow-2xl z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <i data-lucide="package-search" class="text-blue-500"></i>
+            <h1 class="text-white font-black text-xl tracking-tighter">ESTOQUE SCM</h1>
         </div>
-    </div>
+        <nav class="p-4 flex-1 space-y-1">
+            <button onclick="showTab('dashboard')" id="btn-dashboard" class="sidebar-btn active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+                <i data-lucide="layout-dashboard" size="18"></i> Dashboard
+            </button>
+            <button onclick="showTab('movements')" id="btn-movements" class="sidebar-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+                <i data-lucide="arrow-right-left" size="18"></i> Movimentar
+            </button>
+            <button onclick="showTab('new')" id="btn-new" class="sidebar-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+                <i data-lucide="plus-circle" size="18"></i> Novo Cadastro
+            </button>
+            <button onclick="showTab('history')" id="btn-history" class="sidebar-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+                <i data-lucide="list-checks" size="18"></i> Histórico
+            </button>
+        </nav>
+        <div id="user-info" class="p-4 text-[10px] text-slate-600 border-t border-slate-800 uppercase tracking-widest">
+            Iniciando...
+        </div>
+    </aside>
 
-    <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="bg-blue-600 p-2 rounded-lg text-white">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto relative h-screen">
+        <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 sticky top-0 bg-slate-50/90 backdrop-blur-sm z-10 py-2">
+            <h2 id="page-title" class="text-2xl font-black text-slate-800 uppercase tracking-tight">Visão Geral</h2>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Filtros de Busca -->
+                <div class="relative group">
+                    <i data-lucide="search" size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    <input type="text" id="search-input" placeholder="Buscar por nome, status ou classe..." oninput="handleFilter()" class="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full md:w-64 transition-all shadow-sm">
                 </div>
-                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Gestão de Compras</h1>
+
+                <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
+                    <div id="connection-status-dot" class="status-dot bg-slate-300"></div>
+                    <span id="connection-status-text" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Conectando...</span>
+                </div>
             </div>
-            <div class="flex items-center gap-4">
-                <button onclick="openModal()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span class="hidden sm:inline">Nova Solicitação</span>
+        </header>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="tab-content active space-y-6">
+            <!-- Grid de Cards (Agora com 6 cards) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card 1: Total Geral -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Total Geral</p>
+                            <h3 id="stat-total" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-purple-50 rounded-lg text-purple-600"><i data-lucide="layers" size="20"></i></div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Pronto Uso -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Pronto Uso</p>
+                            <h3 id="stat-pronto" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600"><i data-lucide="package-check" size="20"></i></div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Classificação A -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Estoque Classe A</p>
+                            <h3 id="stat-class-a" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="star" size="20"></i></div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Remanufatura -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Em Remanufatura</p>
+                            <h3 id="stat-reman" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600"><i data-lucide="wrench" size="20"></i></div>
+                    </div>
+                </div>
+
+                <!-- Card 5: Retorno -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Em Retorno</p>
+                            <h3 id="stat-retorno" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-amber-50 rounded-lg text-amber-600"><i data-lucide="truck" size="20"></i></div>
+                    </div>
+                </div>
+
+                <!-- Card 6: Alerta -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-red-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Abaixo do Mínimo</p>
+                            <h3 id="stat-alerta" class="text-3xl font-black text-red-600 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-red-50 rounded-lg text-red-600"><i data-lucide="alert-triangle" size="20"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="p-4 font-bold text-slate-600 w-16 text-center">Img</th>
+                                <th class="p-4 font-bold text-slate-600 w-16 text-center">Class</th>
+                                <th class="p-4 font-bold text-slate-600">Material</th>
+                                <th class="p-4 text-center text-slate-600">Tipo</th>
+                                <th class="p-4 text-center text-slate-600">Status</th>
+                                <th class="p-4 text-center text-slate-900 bg-slate-100 font-black">Total</th>
+                                <th class="p-4 text-center text-emerald-600">Pronto</th>
+                                <th class="p-4 text-center text-blue-600">Reman</th>
+                                <th class="p-4 text-center text-amber-600">Retorno</th>
+                                <th class="p-4 text-center text-slate-400">Min/Max</th>
+                                <th class="p-4 text-center text-slate-400">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-slate-100">
+                            <tr><td colspan="11" class="p-10 text-center text-slate-400 italic">Sincronizando dados...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Movimentação -->
+        <div id="movements" class="tab-content max-w-2xl mx-auto space-y-6 animate-fade-in">
+            <div class="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-700 mb-6 border-b pb-2">Registrar Movimentação</h3>
+                
+                <div class="grid grid-cols-1 gap-4 mb-6">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Produto Selecionado</label>
+                    <select id="trans-item" class="p-3 border-2 border-slate-100 rounded-lg bg-slate-50 font-bold outline-none focus:border-blue-500 focus:bg-white transition-all w-full">
+                        <option value="">Aguardando itens...</option>
+                    </select>
+                    
+                    <div class="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl mt-2">
+                        <button onclick="setTransType('in')" id="type-in" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all bg-white text-emerald-600 shadow-md uppercase">Entrada</button>
+                        <button onclick="setTransType('out')" id="type-out" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Saída</button>
+                        <button onclick="setTransType('transfer')" id="type-transfer" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Transferência</button>
+                    </div>
+                </div>
+
+                <div id="dynamic-locations" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 hidden">
+                    <div id="container-origin">
+                        <label class="text-[10px] uppercase font-bold text-slate-400">Origem</label>
+                        <select id="trans-from" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500 outline-none">
+                            <option value="stockPronto">Pronto Uso</option>
+                            <option value="stockReman">Remanufatura</option>
+                            <option value="stockRetorno">Retorno</option>
+                        </select>
+                    </div>
+                    <div id="container-destination">
+                        <label class="text-[10px] uppercase font-bold text-slate-400">Destino</label>
+                        <select id="trans-to" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500 outline-none">
+                            <option value="stockPronto">Pronto Uso</option>
+                            <option value="stockReman">Remanufatura</option>
+                            <option value="stockRetorno">Retorno</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Quantidade</label>
+                        <input type="number" id="trans-qty" placeholder="1" min="1" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Observação</label>
+                        <input type="text" id="trans-reason" placeholder="Obs / Placa / OS" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <button id="btn-confirm-trans" onclick="handleTransaction()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest mt-6 hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 flex justify-center items-center gap-2">
+                    <span>Confirmar Operação</span>
+                    <i data-lucide="check-circle" size="18"></i>
                 </button>
             </div>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Total de Pedidos</p>
-                    <h3 id="stat-total" class="text-3xl font-bold text-slate-800">0</h3>
+        <!-- Novo Equipamento -->
+        <div id="new" class="tab-content max-w-lg mx-auto">
+            <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                <h3 class="text-lg font-bold text-slate-700 mb-2 border-b pb-2">Cadastrar Novo Item</h3>
+                
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Imagem do Item</label>
+                    <label class="block w-full p-4 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all text-center group relative overflow-hidden bg-slate-50">
+                        <input type="file" id="new-image-file" accept="image/*" class="hidden" onchange="handleFileSelect(this, 'new-preview-container')">
+                        <div id="new-preview-container" class="flex flex-col items-center justify-center text-slate-400 py-4">
+                            <i data-lucide="upload-cloud" size="32" class="mb-2 group-hover:text-blue-500 transition-colors"></i>
+                            <span class="text-xs font-bold uppercase group-hover:text-blue-600">Clique para enviar foto</span>
+                        </div>
+                    </label>
                 </div>
-                <div class="p-2 bg-blue-50 rounded-lg text-blue-600"><i data-lucide="list" class="w-6 h-6"></i></div>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Média SLA</p>
-                    <h3 id="stat-sla" class="text-3xl font-bold text-slate-800">0d</h3>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Descrição do Equipamento</label>
+                    <input type="text" id="new-name" placeholder="Ex: Suntech ST310U" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500">
                 </div>
-                <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="calendar" class="w-6 h-6"></i></div>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Alta Prioridade</p>
-                    <h3 id="stat-high" class="text-3xl font-bold text-red-600">0</h3>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">Tipo de Material</label>
+                        <select id="new-type" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
+                            <option value="Insumo">Insumo</option>
+                            <option value="Ferramenta">Ferramenta</option>
+                            <option value="Locação">Locação</option>
+                            <option value="Cartão">Cartão</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">Classificação</label>
+                        <select id="new-classification" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
+                            <option value="A">Classe A</option>
+                            <option value="B">Classe B</option>
+                            <option value="C">Classe C</option>
+                            <option value="D">Classe D</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="p-2 bg-red-50 rounded-lg text-red-600"><i data-lucide="flame" class="w-6 h-6"></i></div>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Atrasados</p>
-                    <h3 id="stat-delayed" class="text-3xl font-bold text-orange-600">0</h3>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Mínimo</label>
+                        <input type="number" id="new-min" value="5" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-500">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Máximo</label>
+                        <input type="number" id="new-max" value="20" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-500">
+                    </div>
                 </div>
-                <div class="p-2 bg-orange-50 rounded-lg text-orange-600"><i data-lucide="clock" class="w-6 h-6"></i></div>
+                <button id="btn-save-new" onclick="addNewItem()" class="w-full py-4 bg-emerald-600 text-white rounded-lg font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Salvar no Inventário</button>
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="flex flex-col lg:flex-row gap-4 mb-6 justify-between items-end lg:items-center">
-            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-1">
-                <div class="relative group flex-1 max-w-md">
-                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar item, solicitante, motivo..." oninput="renderTable()" class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+        <!-- Histórico -->
+        <div id="history" class="tab-content">
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-900 border-b border-slate-800">
+                            <tr class="text-[10px] uppercase text-slate-500 font-bold">
+                                <th class="p-4">Data e Hora</th>
+                                <th class="p-4">Ação</th>
+                                <th class="p-4">Item</th>
+                                <th class="p-4 text-center">Qtd</th>
+                                <th class="p-4">Obs</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-10 text-center text-slate-400">Carregando histórico...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <select id="priorityFilter" onchange="renderTable()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white focus:border-blue-500 outline-none">
-                    <option value="TODOS">Todas Prioridades</option>
-                    <option value="ALTA">Alta</option>
-                    <option value="MEDIA">Média</option>
-                    <option value="BAIXA">Baixa</option>
-                </select>
-                <select id="statusFilter" onchange="renderTable()" class="px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white focus:border-blue-500 outline-none">
-                    <option value="TODOS">Todos os Status</option>
-                    <option value="EM COTAÇÃO">Em Cotação</option>
-                    <option value="PENDENTE">Pendente</option>
-                    <option value="AGUARDANDO RECEBIMENTO">Aguardando Recebimento</option>
-                    <option value="HOMOLOGAÇÃO">Homologação</option>
-                    <option value="CONCLUIDO">Concluído</option>
-                    <option value="ENTREGA PARCIAL">Entrega Parcial</option>
-                    <option value="NAO INICIADA">Não Iniciada</option>
-                    <option value="RECEBIDO COM ERRO">Recebido com Erro</option>
-                    <option value="AGUARDANDO RETIRADA">Aguardando Retirada</option>
-                    <option value="CANCELADO">Cancelado</option>
-                </select>
-            </div>
-            <div class="flex gap-2">
-                <div class="relative">
-                    <input type="file" id="csvFile" accept=".csv" onchange="handleFileUpload(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <button class="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Table Container -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[1200px]">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">Item / Observação</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Solicitante / CR</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Qtd</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Prioridade</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">SLA</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Datas</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status / Comprador</th>
-                            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
-                </table>
             </div>
         </div>
     </main>
 
-    <!-- Modal Form -->
-    <div id="modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h2 id="modalTitle" class="text-xl font-bold text-slate-800">Nova Solicitação</h2>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- Modal de Edição -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Editar Item</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" size="24"></i></button>
             </div>
-            <form id="itemForm" class="p-6 space-y-4">
-                <input type="hidden" id="editId">
-                
-                <div class="grid grid-cols-1 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Descrição do Item</label>
-                        <input id="itemDesc" required class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100">
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-id">
+                <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Imagem</label>
+                    <div class="flex items-center gap-4">
+                        <div id="edit-current-img-container" class="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                            <i data-lucide="image" class="text-slate-300"></i>
+                        </div>
+                        <label class="flex-1 cursor-pointer">
+                            <div class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 text-center transition-colors">Alterar Foto...</div>
+                            <input type="file" id="edit-image-file" accept="image/*" class="hidden" onchange="handleFileSelect(this, 'edit-current-img-container', true)">
+                        </label>
                     </div>
                 </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Solicitante</label>
-                        <input id="itemRequester" placeholder="Nome do solicitante" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Centro de Resultados</label>
-                        <input id="itemCR" placeholder="Ex: 1.2.3 SCM/ESTOQUE" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Motivo</label>
-                        <input id="itemReason" class="w-full px-3 py-2 border rounded-lg outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
-                        <input id="itemQty" type="number" required class="w-full px-3 py-2 border rounded-lg">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
-                        <select id="itemPriority" class="w-full px-3 py-2 border rounded-lg bg-white">
-                            <option value="BAIXA">Baixa</option>
-                            <option value="MEDIA">Média</option>
-                            <option value="ALTA">Alta</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Data Solicitação</label>
-                        <input id="itemDateSolic" type="date" class="w-full px-3 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Prazo Entrega</label>
-                        <input id="itemDeadline" type="date" class="w-full px-3 py-2 border rounded-lg">
-                        <p class="text-[10px] text-red-500 hidden mt-1" id="deadlineLockMsg">Data travada (já definida)</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Comprador Responsável</label>
-                        <input id="itemBuyer" class="w-full px-3 py-2 border rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                        <select id="itemStatus" class="w-full px-3 py-2 border rounded-lg bg-white font-semibold">
-                            <option value="NAO INICIADA">Não Iniciada</option>
-                            <option value="EM COTAÇÃO">Em Cotação</option>
-                            <option value="PENDENTE">Pendente</option>
-                            <option value="AGUARDANDO RECEBIMENTO">Aguardando Recebimento</option>
-                            <option value="HOMOLOGAÇÃO">Homologação</option>
-                            <option value="CONCLUIDO">Concluído</option>
-                            <option value="ENTREGA PARCIAL">Entrega Parcial</option>
-                            <option value="RECEBIDO COM ERRO">Recebido com Erro</option>
-                            <option value="AGUARDANDO RETIRADA">Aguardando Retirada</option>
-                            <option value="CANCELADO">Cancelado</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Observações</label>
-                    <textarea id="itemObs" rows="3" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-100" placeholder="Detalhes, prazos parciais, NF, etc."></textarea>
+                    <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Nome</label>
+                    <input id="edit-name" type="text" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500">
                 </div>
-
-                <div class="flex justify-between pt-4 border-t">
-                    <button type="button" id="deleteBtn" onclick="deleteItem()" class="text-red-600 px-4 py-2 hover:bg-red-50 rounded-lg hidden font-medium transition-colors">Excluir</button>
-                    <div class="flex gap-2 ml-auto">
-                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Salvar Solicitação</button>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Tipo de Material</label>
+                        <select id="edit-type" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500 bg-white">
+                            <option value="Insumo">Insumo</option>
+                            <option value="Ferramenta">Ferramenta</option>
+                            <option value="Locação">Locação</option>
+                            <option value="Cartão">Cartão</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Classificação</label>
+                        <select id="edit-classification" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500 bg-white">
+                            <option value="A">Classe A</option>
+                            <option value="B">Classe B</option>
+                            <option value="C">Classe C</option>
+                            <option value="D">Classe D</option>
+                        </select>
                     </div>
                 </div>
-            </form>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Mínimo</label>
+                        <input id="edit-min" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Máximo</label>
+                        <input id="edit-max" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="saveEditItem()" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">Salvar</button>
+            </div>
         </div>
     </div>
 
-    <!-- Firebase SDK Integration -->
+    <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Configurações do Firebase Gestão Compras SCM
-        const firebaseConfig = {
-            apiKey: "AIzaSyCdm59eND0vGg-tFLZ4jv8e9ujhYqG-of8",
-            authDomain: "gestao-compras-scm.firebaseapp.com",
-            projectId: "gestao-compras-scm",
-            storageBucket: "gestao-compras-scm.firebasestorage.app",
-            messagingSenderId: "697232124756",
-            appId: "1:697232124756:web:492fe579789a0904b6f6c1"
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyATO-PdFidpnuPrPMq36oKTDFlpSxbsxDA", 
+            authDomain: "meuestoquerastreadores.firebaseapp.com",
+            projectId: "meuestoquerastreadores",
+            storageBucket: "meuestoquerastreadores.firebasestorage.app",
+            messagingSenderId: "808134691039",
+            appId: "1:808134691039:web:c7af29edeea9b3e202016a"
         };
 
-        // Inicialização
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'scm-gestao-compras';
-        const COLLECTION_PATH = ['artifacts', appId, 'public', 'data', 'compras'];
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rastreadores-main-db';
 
-        let data = [];
-        let user = null;
+        let currentInventory = [];
+        let filteredInventory = [];
+        let currentUser = null;
+        let currentTransactionType = 'in';
 
-        // Autenticação e Sincronização
-        async function startApp() {
-            try {
-                // Autenticação anônima para acesso seguro aos dados
-                await signInAnonymously(auth);
-                onAuthStateChanged(auth, (u) => {
-                    user = u;
-                    if (user) {
-                        setupDataSync();
-                    }
-                });
-            } catch (error) {
-                console.error("Auth error:", error);
-                document.getElementById('loadingOverlay').innerHTML = `<p class="text-red-500 font-bold p-10">Erro ao conectar ao Firebase. Verifique se o login anônimo está ativo no Console.</p>`;
-            }
-        }
+        // Notificações
+        window.showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'error' ? 'bg-red-500' : (type === 'info' ? 'bg-blue-500' : 'bg-emerald-500');
+            toast.className = `${colors} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 toast mb-2 min-w-[300px] border border-white/10`;
+            toast.innerHTML = `<i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}" size="20"></i><span class="font-bold text-sm">${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        };
 
-        function setupDataSync() {
-            const q = query(collection(db, ...COLLECTION_PATH), orderBy('updatedAt', 'desc'));
-            
-            onSnapshot(q, (snapshot) => {
-                data = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                renderTable();
-                document.getElementById('loadingOverlay').style.display = 'none';
-                lucide.createIcons();
-            }, (error) => {
-                console.error("Firestore error:", error);
-            });
-        }
+        const updateStatus = (text, color) => {
+            const dot = document.getElementById('connection-status-dot');
+            if(dot) dot.className = `status-dot ${color}`;
+            const label = document.getElementById('connection-status-text');
+            if(label) label.innerText = text;
+        };
 
-        // Funções Globais para o formulário
-        window.openModal = (id = null) => {
-            const modal = document.getElementById('modal');
-            const form = document.getElementById('itemForm');
-            const deleteBtn = document.getElementById('deleteBtn');
-            const deadlineInput = document.getElementById('itemDeadline');
-            const lockMsg = document.getElementById('deadlineLockMsg');
-            
-            form.reset();
-            
-            // Reset visual do campo de data
-            deadlineInput.removeAttribute('readonly');
-            deadlineInput.classList.remove('bg-slate-100', 'cursor-not-allowed', 'text-slate-500');
-            lockMsg.classList.add('hidden');
-
-            if(!id) {
-                document.getElementById('itemDateSolic').value = new Date().toISOString().split('T')[0];
-                document.getElementById('modalTitle').innerText = "Nova Solicitação";
-                document.getElementById('itemStatus').value = "NAO INICIADA";
-                deleteBtn.classList.add('hidden');
-                document.getElementById('editId').value = "";
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-info').innerText = `ID: ${user.uid.substring(0,6)} (Online)`;
+                updateStatus("Sincronizado", "bg-emerald-500");
+                startListening();
             } else {
-                const item = data.find(i => i.id == id);
-                if (!item) return;
-                document.getElementById('editId').value = id;
-                document.getElementById('itemDesc').value = item.item || '';
-                document.getElementById('itemQty').value = item.quantidade || '';
-                document.getElementById('itemPriority').value = item.prioridade || 'MEDIA';
-                document.getElementById('itemBuyer').value = item.comprador || '';
-                
-                // Lógica de Trava de Data
-                const prazo = item.prazo_entrega || '';
-                document.getElementById('itemDeadline').value = prazo;
-                if (prazo) {
-                    deadlineInput.setAttribute('readonly', true);
-                    deadlineInput.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-500');
-                    lockMsg.classList.remove('hidden');
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
-
-                document.getElementById('itemDateSolic').value = item.data_solic || '';
-                document.getElementById('itemCR').value = item.centro_resultado || '';
-                document.getElementById('itemRequester').value = item.solicitante || '';
-                document.getElementById('itemReason').value = item.motivo || '';
-                document.getElementById('itemObs').value = item.obs || '';
-                document.getElementById('itemStatus').value = item.status_compra || 'NAO INICIADA';
-                document.getElementById('modalTitle').innerText = "Editar Solicitação";
-                deleteBtn.classList.remove('hidden');
             }
-            
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        };
+        });
 
-        window.closeModal = () => {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
-        };
-
-        window.deleteItem = async () => {
-            const id = document.getElementById('editId').value;
-            if (id && confirm("Deseja realmente excluir este pedido?")) {
-                await deleteDoc(doc(db, ...COLLECTION_PATH, id));
-                closeModal();
-            }
-        };
-
-        window.renderTable = () => {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const priority = document.getElementById('priorityFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-
-            const filtered = data.filter(i => {
-                const searchStr = ((i.item || '') + (i.solicitante || '') + (i.motivo || '') + (i.obs || '')).toLowerCase();
-                const matchesSearch = searchStr.includes(search);
-                const matchesPriority = priority === 'TODOS' || i.prioridade === priority;
-                const matchesStatus = statusFilter === 'TODOS' || i.status_compra === statusFilter;
-                return matchesSearch && matchesPriority && matchesStatus;
+        function startListening() {
+            const invRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+            onSnapshot(invRef, (snap) => {
+                currentInventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                handleFilter(); // Inicializa com a lista filtrada (ou cheia)
+                updateSelects();
+                updateStats();
             });
 
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = filtered.map(row => {
-                const sla = calculateSLA(row.data_solic, row.prazo_entrega);
-                const isDelayed = row.prazo_entrega && new Date(row.prazo_entrega) < new Date() && !row.status_compra.includes('CONCLUIDO') && !row.status_compra.includes('CANCELADO');
-                const statusClass = getStatusClass(row.status_compra);
-                const dotClass = getDotClass(row.status_compra);
-                
-                return `
-                    <tr class="hover:bg-blue-50/50 transition-colors">
-                        <td class="p-4">
-                            <div class="flex flex-col">
-                                <span onclick="openModal('${row.id}')" class="font-semibold text-slate-800 text-sm cursor-pointer hover:text-blue-600 transition-colors">${row.item}</span>
-                                <span class="text-[10px] text-slate-400 italic whitespace-normal break-words">${row.obs || ''}</span>
-                            </div>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex flex-col text-xs">
-                                <span class="font-medium text-slate-700">${row.solicitante || 'N/I'}</span>
-                                <span class="text-slate-400 font-mono">${row.centro_resultado || '-'}</span>
-                            </div>
-                        </td>
-                        <td class="p-4 text-center font-bold text-sm">${row.quantidade}</td>
-                        <td class="p-4 text-center">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                row.prioridade === 'ALTA' ? 'bg-red-50 text-red-600 border-red-100' :
-                                row.prioridade === 'MEDIA' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' : 
-                                'bg-green-50 text-green-600 border-green-100'
-                            }">${row.prioridade}</span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[10px] font-bold">${sla} DIAS</span>
-                        </td>
-                        <td class="p-4 text-center text-[10px] leading-tight">
-                            <div class="text-slate-400">Solic: ${formatDate(row.data_solic)}</div>
-                            <div class="${isDelayed ? 'text-red-500 font-bold' : 'text-slate-600'}">Prazo: ${formatDate(row.prazo_entrega)}</div>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex flex-col gap-0.5">
-                                <div class="flex items-center gap-1.5">
-                                    <div class="w-1.5 h-1.5 rounded-full ${dotClass} ${(!row.status_compra.includes('CONCLUIDO') && !row.status_compra.includes('CANCELADO')) ? 'animate-pulse' : ''}"></div>
-                                    <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${statusClass}">${row.status_compra}</span>
-                                </div>
-                                <span class="text-[10px] text-slate-400 italic pl-3">${row.comprador || 'S/ Comprador'}</span>
-                            </div>
-                        </td>
-                        <td class="p-4 text-center">
-                            <button onclick="openModal('${row.id}')" class="text-slate-300 hover:text-blue-600 transition-colors"><i data-lucide="edit" class="w-5 h-5"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            const histRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+            onSnapshot(histRef, (snap) => {
+                const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                                 .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                renderHistory(logs);
+            });
+        }
 
-            updateStats(filtered);
+        // --- FILTRAGEM ---
+        window.handleFilter = () => {
+            const term = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            filteredInventory = currentInventory.filter(item => {
+                const total = (item.stockPronto || 0) + (item.stockReman || 0) + (item.stockRetorno || 0);
+                const min = item.minStock || 0;
+                const max = item.maxStock || 0;
+                const classification = item.classification || 'C'; // Default to C if undefined
+                
+                let statusText = "";
+                if (total < min) statusText = "baixo";
+                else if (total > max) statusText = "excesso";
+                else statusText = "em controle";
+
+                return item.name.toLowerCase().includes(term) || 
+                       statusText.includes(term) ||
+                       (item.type && item.type.toLowerCase().includes(term)) ||
+                       classification.toLowerCase().includes(term);
+            });
+
+            renderInventory();
+        };
+
+        function renderInventory() {
+            const body = document.getElementById('inventory-table-body');
+            if(!body) return;
+            
+            body.innerHTML = filteredInventory.length === 0 ? 
+                `<tr><td colspan="11" class="p-10 text-center text-slate-400">Nenhum item corresponde à sua busca.</td></tr>` :
+                filteredInventory.map(item => {
+                    const pronto = item.stockPronto || 0;
+                    const reman = item.stockReman || 0;
+                    const retorno = item.stockRetorno || 0;
+                    const total = pronto + reman + retorno;
+                    const min = item.minStock || 0;
+                    const max = item.maxStock || 100;
+                    const classification = item.classification || 'C';
+
+                    let statusLabel = "";
+                    let statusClasses = "";
+
+                    if (total < min) {
+                        statusLabel = "Baixo";
+                        statusClasses = "bg-red-100 text-red-700 border-red-200";
+                    } else if (total > max) {
+                        statusLabel = "Excesso";
+                        statusClasses = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                    } else {
+                        statusLabel = "Em Controle";
+                        statusClasses = "bg-blue-100 text-blue-700 border-blue-200";
+                    }
+
+                    // Cores da Classificação
+                    const classColors = {
+                        'A': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                        'B': 'bg-blue-100 text-blue-700 border-blue-200',
+                        'C': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                        'D': 'bg-slate-100 text-slate-600 border-slate-200'
+                    };
+                    const classBadge = classColors[classification] || classColors['C'];
+
+                    const typeColors = { 'Insumo': "bg-slate-100 text-slate-600 border-slate-200", 'Ferramenta': "bg-orange-50 text-orange-600 border-orange-100", 'Locação': "bg-purple-50 text-purple-600 border-purple-100", 'Cartão': "bg-pink-50 text-pink-600 border-pink-100" };
+                    const typeClass = typeColors[item.type] || "bg-slate-100 text-slate-600";
+
+                    const imgHtml = item.imageUrl 
+                        ? `<div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center mx-auto"><img src="${item.imageUrl}" class="w-full h-full object-cover"></div>`
+                        : `<div class="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mx-auto"><i data-lucide="package" size="18"></i></div>`;
+
+                    return `
+                        <tr class="hover:bg-slate-50 border-b border-slate-50 transition-colors">
+                            <td class="p-3">${imgHtml}</td>
+                            <td class="p-4 text-center">
+                                <span class="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border ${classBadge} mx-auto shadow-sm">${classification}</span>
+                            </td>
+                            <td class="p-4 font-bold text-slate-700">${item.name}</td>
+                            <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase border ${typeClass}">${item.type}</span></td>
+                            <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase border ${statusClasses}">${statusLabel}</span></td>
+                            <td class="p-4 text-center font-black bg-slate-50 text-slate-900 border-x border-slate-100">${total}</td>
+                            <td class="p-4 text-center font-bold text-emerald-600 bg-emerald-50/30">${pronto}</td>
+                            <td class="p-4 text-center font-bold text-blue-500 bg-blue-50/30">${reman}</td>
+                            <td class="p-4 text-center font-bold text-amber-500 bg-amber-50/30">${retorno}</td>
+                            <td class="p-4 text-center text-slate-400 text-[10px] font-mono">${min} - ${max}</td>
+                            <td class="p-4 text-center flex items-center justify-center gap-2">
+                                <button onclick="openEditModal('${item.id}', '${item.name}', ${min}, ${item.maxStock || 0}, '${item.type}', '${classification}')" class="text-slate-400 hover:text-blue-600 p-2 rounded-lg transition-colors"><i data-lucide="pencil" size="16"></i></button>
+                                <button onclick="deleteMaterial('${item.id}', '${item.name}')" class="text-slate-400 hover:text-red-600 p-2 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                            </td>
+                        </tr>`;
+                }).join('');
+            lucide.createIcons();
+        }
+
+        function renderHistory(logs) {
+            const body = document.getElementById('history-table-body');
+            if(!body) return;
+            body.innerHTML = logs.slice(0, 20).map(h => `
+                <tr class="text-xs hover:bg-slate-50 transition-colors">
+                    <td class="p-4 text-slate-500 font-mono">${h.date || '...'}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-md font-bold uppercase text-[10px] ${h.action === 'Entrada' ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}">${h.action}</span></td>
+                    <td class="p-4 font-bold text-slate-700">${h.item}</td>
+                    <td class="p-4 text-center font-black text-slate-600">${h.qty || '-'}</td>
+                    <td class="p-4 text-slate-500 italic truncate max-w-[200px]">${h.detail || '-'}</td>
+                </tr>`).join('');
+        }
+
+        function updateSelects() {
+            const select = document.getElementById('trans-item');
+            if(!select) return;
+            const current = select.value;
+            select.innerHTML = '<option value="">Selecione o equipamento...</option>' + 
+                currentInventory.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+            select.value = current;
+        }
+
+        function updateStats() {
+            // Cálculos existentes
+            const reman = currentInventory.reduce((a,c) => a + (c.stockReman || 0), 0);
+            const retorno = currentInventory.reduce((a,c) => a + (c.stockRetorno || 0), 0);
+            const alertas = currentInventory.filter(i => {
+                const total = (i.stockPronto || 0) + (i.stockReman || 0) + (i.stockRetorno || 0);
+                return total < (i.minStock || 0);
+            }).length;
+
+            // Novos Cálculos
+            const totalGeral = currentInventory.reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
+            const pronto = currentInventory.reduce((a,c) => a + (c.stockPronto || 0), 0);
+            const classA = currentInventory
+                .filter(i => i.classification === 'A')
+                .reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
+
+            // Atualiza UI
+            document.getElementById('stat-reman').innerText = reman;
+            document.getElementById('stat-retorno').innerText = retorno;
+            document.getElementById('stat-alerta').innerText = alertas;
+            
+            document.getElementById('stat-total').innerText = totalGeral;
+            document.getElementById('stat-pronto').innerText = pronto;
+            document.getElementById('stat-class-a').innerText = classA;
+        }
+
+        window.compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_W = 400; let w = img.width, h = img.height;
+                        if (w > MAX_W) { h *= MAX_W / w; w = MAX_W; }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
+        };
+
+        window.handleFileSelect = (input, previewId, isEdit = false) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const container = document.getElementById(previewId);
+                    if(isEdit) container.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    else container.innerHTML = `<img src="${e.target.result}" class="w-24 h-24 rounded-lg object-cover shadow-sm border border-slate-200 mb-2"><span class="text-[10px] text-emerald-600 font-bold uppercase">Foto Selecionada</span>`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.openEditModal = (id, name, min, max, type, classification) => {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-min').value = min;
+            document.getElementById('edit-max').value = max;
+            const item = currentInventory.find(i => i.id === id);
+            const imgContainer = document.getElementById('edit-current-img-container');
+            if(item && item.imageUrl) imgContainer.innerHTML = `<img src="${item.imageUrl}" class="w-full h-full object-cover">`;
+            else { imgContainer.innerHTML = `<i data-lucide="image" class="text-slate-300"></i>`; lucide.createIcons(); }
+            document.getElementById('edit-type').value = type || 'Insumo';
+            document.getElementById('edit-classification').value = classification || 'C'; // Default to C
+            document.getElementById('edit-modal').classList.remove('hidden');
+        };
+
+        window.closeEditModal = () => document.getElementById('edit-modal').classList.add('hidden');
+
+        window.saveEditItem = async () => {
+            const id = document.getElementById('edit-id').value;
+            const fileInput = document.getElementById('edit-image-file');
+            try {
+                let data = { 
+                    name: document.getElementById('edit-name').value, 
+                    minStock: parseInt(document.getElementById('edit-min').value), 
+                    maxStock: parseInt(document.getElementById('edit-max').value), 
+                    type: document.getElementById('edit-type').value,
+                    classification: document.getElementById('edit-classification').value
+                };
+                if(fileInput.files.length > 0) data.imageUrl = await compressImage(fileInput.files[0]);
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), data);
+                showToast("Item atualizado!"); closeEditModal();
+            } catch(e) { showToast("Erro ao editar.", "error"); }
+        };
+
+        window.setTransType = (type) => {
+            currentTransactionType = type;
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.classList.remove('bg-white', 'shadow-md', 'text-emerald-600', 'text-red-600', 'text-blue-600');
+                b.classList.add('text-slate-500');
+            });
+            const colors = { in: 'text-emerald-600', out: 'text-red-600', transfer: 'text-blue-600' };
+            document.getElementById(`type-${type}`).classList.add('bg-white', 'shadow-md', colors[type]);
+            document.getElementById('dynamic-locations').classList.toggle('hidden', type === 'in');
+            document.getElementById('container-destination').classList.toggle('hidden', type === 'out');
+        };
+
+        window.addNewItem = async () => {
+            const name = document.getElementById('new-name').value;
+            if(!name) return showToast("Nome obrigatório", "error");
+            const fileInput = document.getElementById('new-image-file');
+            try {
+                let imageUrl = fileInput.files.length > 0 ? await compressImage(fileInput.files[0]) : "";
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), {
+                    name, 
+                    minStock: parseInt(document.getElementById('new-min').value) || 0, 
+                    maxStock: parseInt(document.getElementById('new-max').value) || 0,
+                    type: document.getElementById('new-type').value, 
+                    classification: document.getElementById('new-classification').value,
+                    imageUrl, stockPronto: 0, stockReman: 0, stockRetorno: 0, timestamp: serverTimestamp()
+                });
+                showToast("Item cadastrado!"); showTab('dashboard');
+            } catch(e) { showToast("Erro ao gravar", "error"); }
+        };
+
+        window.deleteMaterial = async (id, name) => {
+            if(confirm(`Excluir "${name}"?`)) {
+                try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id)); showToast("Excluído."); }
+                catch(e) { showToast("Erro ao excluir.", "error"); }
+            }
+        };
+
+        window.handleTransaction = async () => {
+            const id = document.getElementById('trans-item').value;
+            const qty = parseInt(document.getElementById('trans-qty').value);
+            if(!id || isNaN(qty) || qty <= 0) return showToast("Dados inválidos", "error");
+
+            const item = currentInventory.find(i => i.id === id);
+            const data = { ...item }; delete data.id;
+            const from = document.getElementById('trans-from').value;
+            const to = document.getElementById('trans-to').value;
+
+            if(currentTransactionType === 'in') data.stockPronto = (data.stockPronto || 0) + qty;
+            else {
+                if((data[from] || 0) < qty) return showToast("Saldo insuficiente!", "error");
+                data[from] -= qty;
+                if(currentTransactionType === 'transfer') data[to] = (data[to] || 0) + qty;
+            }
+
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), data);
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), {
+                    item: item.name, action: currentTransactionType === 'in' ? 'Entrada' : (currentTransactionType === 'out' ? 'Saída' : 'Transferência'),
+                    qty, detail: document.getElementById('trans-reason').value || '', date: new Date().toLocaleString('pt-BR'), timestamp: serverTimestamp()
+                });
+                showToast("Sucesso!"); showTab('dashboard');
+            } catch(e) { showToast("Erro ao processar.", "error"); }
+        };
+
+        window.showTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById(`btn-${id}`).classList.add('active');
             lucide.createIcons();
         };
 
-        // Manipulação do Form
-        document.getElementById('itemForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editId').value;
-            const payload = {
-                item: document.getElementById('itemDesc').value,
-                quantidade: parseInt(document.getElementById('itemQty').value),
-                prioridade: document.getElementById('itemPriority').value,
-                comprador: document.getElementById('itemBuyer').value,
-                prazo_entrega: document.getElementById('itemDeadline').value,
-                data_solic: document.getElementById('itemDateSolic').value,
-                centro_resultado: document.getElementById('itemCR').value,
-                solicitante: document.getElementById('itemRequester').value,
-                motivo: document.getElementById('itemReason').value,
-                obs: document.getElementById('itemObs').value,
-                status_compra: document.getElementById('itemStatus').value,
-                updatedAt: serverTimestamp()
-            };
-
-            try {
-                if (id) {
-                    await updateDoc(doc(db, ...COLLECTION_PATH, id), payload);
-                } else {
-                    payload.createdAt = serverTimestamp();
-                    await addDoc(collection(db, ...COLLECTION_PATH), payload);
-                }
-                closeModal();
-            } catch (err) {
-                console.error("Erro ao salvar:", err);
-                alert("Erro ao salvar dados no Firebase. Verifique sua conexão ou configurações.");
-            }
-        };
-
-        // Helper functions
-        function calculateSLA(dateSolic, deadline) {
-            if (!dateSolic || !deadline) return 0;
-            const start = new Date(dateSolic);
-            const end = new Date(deadline);
-            if(isNaN(start) || isNaN(end)) return 0;
-            const diffTime = Math.abs(end - start);
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        function formatDate(str) {
-            if (!str) return '-';
-            const date = new Date(str);
-            if (isNaN(date.getTime())) return str;
-            const offset = date.getTimezoneOffset() * 60000;
-            return new Date(date.getTime() + offset).toLocaleDateString('pt-BR');
-        }
-
-        function getStatusClass(status) {
-            const s = status ? status.toUpperCase() : '';
-            if (s.includes('COTAÇÃO')) return 'status-em-cotacao';
-            if (s.includes('PENDENTE')) return 'status-pendente';
-            if (s.includes('RECEBIMENTO')) return 'status-aguardando-recebimento';
-            if (s.includes('HOMOLOGAÇÃO')) return 'status-homologacao';
-            if (s.includes('CONCLUIDO')) return 'status-concluido';
-            if (s.includes('PARCIAL')) return 'status-entrega-parcial';
-            if (s.includes('NAO INICIADA')) return 'status-nao-iniciada';
-            if (s.includes('ERRO')) return 'status-recebido-erro';
-            if (s.includes('RETIRADA')) return 'status-aguardando-retirada';
-            if (s.includes('CANCELADO')) return 'status-cancelado';
-            return 'bg-slate-50 text-slate-500 border-slate-100';
-        }
-
-        function getDotClass(status) {
-            const s = status ? status.toUpperCase() : '';
-            if (s.includes('COTAÇÃO')) return 'dot-em-cotacao';
-            if (s.includes('PENDENTE')) return 'dot-pendente';
-            if (s.includes('RECEBIMENTO')) return 'dot-aguardando-recebimento';
-            if (s.includes('HOMOLOGAÇÃO')) return 'dot-homologacao';
-            if (s.includes('CONCLUIDO')) return 'dot-concluido';
-            if (s.includes('PARCIAL')) return 'dot-entrega-parcial';
-            if (s.includes('NAO INICIADA')) return 'dot-nao-iniciada';
-            if (s.includes('ERRO')) return 'dot-recebido-erro';
-            if (s.includes('RETIRADA')) return 'dot-aguardando-retirada';
-            if (s.includes('CANCELADO')) return 'dot-cancelado';
-            return 'bg-slate-300';
-        }
-
-        function updateStats(filtered) {
-            document.getElementById('stat-total').innerText = filtered.length;
-            document.getElementById('stat-high').innerText = filtered.filter(i => i.prioridade === 'ALTA').length;
-            document.getElementById('stat-delayed').innerText = filtered.filter(i => i.prazo_entrega && new Date(i.prazo_entrega) < new Date() && !i.status_compra.includes('CONCLUIDO') && !i.status_compra.includes('CANCELADO')).length;
-            
-            const totalSLA = filtered.reduce((acc, i) => acc + calculateSLA(i.data_solic, i.prazo_entrega), 0);
-            const avgSLA = filtered.length > 0 ? Math.round(totalSLA / filtered.length) : 0;
-            document.getElementById('stat-sla').innerText = avgSLA + 'd';
-        }
-
-        // CSV Upload aprimorado para Firebase
-        window.handleFileUpload = (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async function(event) {
-                const lines = event.target.result.split('\n');
-                const batchItems = lines.slice(1).map((line) => {
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (cols.length < 5) return null;
-                    
-                    return {
-                        item: (cols[1] || "").replace(/"/g, '').trim(),
-                        quantidade: parseInt(cols[2]) || 0,
-                        prioridade: (cols[3] || "MEDIA").toUpperCase().trim(),
-                        centro_resultado: (cols[6] || "").trim(),
-                        motivo: (cols[7] || "").trim(),
-                        data_solic: (cols[10] || "").trim(),
-                        status_compra: (cols[11] || "NAO INICIADA").toUpperCase().trim(),
-                        prazo_entrega: (cols[12] || "").trim(),
-                        obs: (cols[19] || cols[15] || "").replace(/"/g, '').trim(),
-                        solicitante: (cols[17] || "").trim(),
-                        comprador: (cols[18] || "").trim(),
-                        updatedAt: serverTimestamp(),
-                        createdAt: serverTimestamp()
-                    };
-                }).filter(x => x && x.item);
-
-                for(const item of batchItems) {
-                    await addDoc(collection(db, ...COLLECTION_PATH), item);
-                }
-                alert(`${batchItems.length} registros importados para o Firebase com sucesso!`);
-            };
-            reader.readAsText(file);
-        };
-
-        startApp();
+        lucide.createIcons();
     </script>
 </body>
 </html>
