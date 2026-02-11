@@ -3,28 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracker Hub - Gestão de Stock</title>
+    <title>CONTROLE DE ESTOQUE - SCM</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fade-in 0.3s; }
         .sidebar-btn.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .img-preview { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; background: #f1f5f9; border: 1px solid #e2e8f0; }
-        .upload-area { border: 2px dashed #cbd5e1; transition: all 0.2s; cursor: pointer; }
-        .upload-area:hover { border-color: #3b82f6; background: #eff6ff; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast { animation: slideIn 0.3s ease-out forwards; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col md:flex-row">
+<body class="bg-slate-50 min-h-screen flex flex-col md:flex-row text-slate-800">
+
+    <!-- Container de Notificações -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
     <!-- Sidebar -->
-    <aside class="w-full md:w-64 bg-slate-900 text-slate-400 flex flex-col shadow-2xl">
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-400 flex flex-col shadow-2xl z-20">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <i data-lucide="package" class="text-blue-500"></i>
-            <h1 class="text-white font-black text-xl tracking-tighter">TRACKER HUB</h1>
+            <i data-lucide="package-search" class="text-blue-500"></i>
+            <h1 class="text-white font-black text-xl tracking-tighter">ESTOQUE SCM</h1>
         </div>
         <nav class="p-4 flex-1 space-y-1">
             <button onclick="showTab('dashboard')" id="btn-dashboard" class="sidebar-btn active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
@@ -40,89 +53,149 @@
                 <i data-lucide="list-checks" size="18"></i> Histórico
             </button>
         </nav>
-        <div id="user-info" class="p-4 text-[10px] text-slate-600 border-t border-slate-800 uppercase tracking-widest">Iniciando...</div>
+        <div id="user-info" class="p-4 text-[10px] text-slate-600 border-t border-slate-800 uppercase tracking-widest">
+            Iniciando...
+        </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
-        <header class="flex justify-between items-center mb-8">
-            <h2 id="page-title" class="text-2xl font-black text-slate-800 uppercase tracking-tight">Status do Estoque</h2>
-            <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
-                <div id="connection-status-dot" class="status-dot bg-slate-300"></div>
-                <span id="connection-status-text" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Conectando...</span>
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto relative h-screen">
+        <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8 sticky top-0 bg-slate-50/90 backdrop-blur-sm z-10 py-2">
+            <h2 id="page-title" class="text-2xl font-black text-slate-800 uppercase tracking-tight">Visão Geral</h2>
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Filtros de Busca -->
+                <div class="relative group">
+                    <i data-lucide="search" size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    <input type="text" id="search-input" placeholder="Buscar por nome, status ou classe..." oninput="handleFilter()" class="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full md:w-64 transition-all shadow-sm">
+                </div>
+
+                <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm">
+                    <div id="connection-status-dot" class="status-dot bg-slate-300"></div>
+                    <span id="connection-status-text" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Conectando...</span>
+                </div>
             </div>
         </header>
 
         <!-- Dashboard -->
         <div id="dashboard" class="tab-content active space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-slate-800">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total Itens</p>
-                    <h3 id="stat-total" class="text-2xl font-black text-slate-800">0</h3>
+            <!-- Grid de Cards (Agora com 6 cards) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card 1: Total Geral -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Total Geral</p>
+                            <h3 id="stat-total" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-purple-50 rounded-lg text-purple-600"><i data-lucide="layers" size="20"></i></div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Pronto Uso</p>
-                    <h3 id="stat-pronto" class="text-2xl font-black text-slate-800">0</h3>
+
+                <!-- Card 2: Pronto Uso -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Pronto Uso</p>
+                            <h3 id="stat-pronto" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600"><i data-lucide="package-check" size="20"></i></div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-500">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Classe A</p>
-                    <h3 id="stat-class-a" class="text-2xl font-black text-slate-800">0</h3>
+
+                <!-- Card 3: Classificação A -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Estoque Classe A</p>
+                            <h3 id="stat-class-a" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="star" size="20"></i></div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Remanuf.</p>
-                    <h3 id="stat-reman" class="text-2xl font-black text-slate-800">0</h3>
+
+                <!-- Card 4: Remanufatura -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Em Remanufatura</p>
+                            <h3 id="stat-reman" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600"><i data-lucide="wrench" size="20"></i></div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Retorno</p>
-                    <h3 id="stat-retorno" class="text-2xl font-black text-slate-800">0</h3>
+
+                <!-- Card 5: Retorno -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Em Retorno</p>
+                            <h3 id="stat-retorno" class="text-3xl font-black text-slate-800 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-amber-50 rounded-lg text-amber-600"><i data-lucide="truck" size="20"></i></div>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-red-500">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Baixo Mín.</p>
-                    <h3 id="stat-alerta" class="text-2xl font-black text-red-600">0</h3>
+
+                <!-- Card 6: Alerta -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-red-500 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Abaixo do Mínimo</p>
+                            <h3 id="stat-alerta" class="text-3xl font-black text-red-600 mt-1">0</h3>
+                        </div>
+                        <div class="p-2 bg-red-50 rounded-lg text-red-600"><i data-lucide="alert-triangle" size="20"></i></div>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th class="p-4 font-bold text-slate-600">Equipamento</th>
-                                <th class="p-4 text-center text-slate-600">Classe</th>
+                                <th class="p-4 font-bold text-slate-600 w-16 text-center">Img</th>
+                                <th class="p-4 font-bold text-slate-600 w-16 text-center">Class</th>
+                                <th class="p-4 font-bold text-slate-600">Material</th>
+                                <th class="p-4 text-center text-slate-600">Tipo</th>
+                                <th class="p-4 text-center text-slate-600">Status</th>
                                 <th class="p-4 text-center text-slate-900 bg-slate-100 font-black">Total</th>
                                 <th class="p-4 text-center text-emerald-600">Pronto</th>
                                 <th class="p-4 text-center text-blue-600">Reman</th>
                                 <th class="p-4 text-center text-amber-600">Retorno</th>
+                                <th class="p-4 text-center text-slate-400">Min/Max</th>
                                 <th class="p-4 text-center text-slate-400">Ações</th>
                             </tr>
                         </thead>
-                        <tbody id="inventory-table-body" class="divide-y divide-slate-100"></tbody>
+                        <tbody id="inventory-table-body" class="divide-y divide-slate-100">
+                            <tr><td colspan="11" class="p-10 text-center text-slate-400 italic">Sincronizando dados...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
         <!-- Movimentação -->
-        <div id="movements" class="tab-content max-w-2xl mx-auto space-y-6">
-            <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-700 mb-6 border-b pb-2 uppercase tracking-tighter">Registrar Operação</h3>
+        <div id="movements" class="tab-content max-w-2xl mx-auto space-y-6 animate-fade-in">
+            <div class="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-700 mb-6 border-b pb-2">Registrar Movimentação</h3>
+                
                 <div class="grid grid-cols-1 gap-4 mb-6">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Equipamento</label>
-                    <select id="trans-item" class="p-3 border-2 border-slate-100 rounded-lg bg-slate-50 font-bold outline-none focus:border-blue-500">
-                        <option value="">Aguardando...</option>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Produto Selecionado</label>
+                    <select id="trans-item" class="p-3 border-2 border-slate-100 rounded-lg bg-slate-50 font-bold outline-none focus:border-blue-500 focus:bg-white transition-all w-full">
+                        <option value="">Aguardando itens...</option>
                     </select>
                     
-                    <div class="flex gap-2 p-1 bg-slate-100 rounded-xl mt-2">
-                        <button onclick="setTransType('in')" id="type-in" class="type-btn flex-1 py-3 rounded-lg font-black text-xs transition-all bg-white text-emerald-600 shadow-md uppercase">Entrada</button>
-                        <button onclick="setTransType('out')" id="type-out" class="type-btn flex-1 py-3 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Saída</button>
-                        <button onclick="setTransType('transfer')" id="type-transfer" class="type-btn flex-1 py-3 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Transferência</button>
+                    <div class="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl mt-2">
+                        <button onclick="setTransType('in')" id="type-in" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all bg-white text-emerald-600 shadow-md uppercase">Entrada</button>
+                        <button onclick="setTransType('out')" id="type-out" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Saída</button>
+                        <button onclick="setTransType('transfer')" id="type-transfer" class="type-btn flex-1 py-3 px-2 rounded-lg font-black text-xs transition-all text-slate-500 uppercase">Transferência</button>
                     </div>
                 </div>
 
-                <div id="location-options" class="grid grid-cols-2 gap-4 mb-6">
+                <div id="dynamic-locations" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 hidden">
                     <div id="container-origin">
                         <label class="text-[10px] uppercase font-bold text-slate-400">Origem</label>
-                        <select id="trans-from" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500">
+                        <select id="trans-from" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500 outline-none">
                             <option value="stockPronto">Pronto Uso</option>
                             <option value="stockReman">Remanufatura</option>
                             <option value="stockRetorno">Retorno</option>
@@ -130,7 +203,7 @@
                     </div>
                     <div id="container-destination">
                         <label class="text-[10px] uppercase font-bold text-slate-400">Destino</label>
-                        <select id="trans-to" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500">
+                        <select id="trans-to" class="w-full p-3 border rounded-lg text-sm bg-slate-50 focus:border-blue-500 outline-none">
                             <option value="stockPronto">Pronto Uso</option>
                             <option value="stockReman">Remanufatura</option>
                             <option value="stockRetorno">Retorno</option>
@@ -138,230 +211,443 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="trans-qty" value="1" min="1" class="p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500" placeholder="Qtd">
-                    <input type="text" id="trans-reason" placeholder="Observação" class="p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Quantidade</label>
+                        <input type="number" id="trans-qty" placeholder="1" min="1" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Observação</label>
+                        <input type="text" id="trans-reason" placeholder="Obs / Placa / OS" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
                 </div>
-                <button onclick="handleTransaction()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest mt-6 hover:bg-blue-700 transition-all">Confirmar Operação</button>
+                <button id="btn-confirm-trans" onclick="handleTransaction()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest mt-6 hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200 flex justify-center items-center gap-2">
+                    <span>Confirmar Operação</span>
+                    <i data-lucide="check-circle" size="18"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Novo Cadastro -->
+        <!-- Novo Equipamento -->
         <div id="new" class="tab-content max-w-lg mx-auto">
             <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm space-y-6">
-                <h3 class="text-lg font-bold text-slate-700 border-b pb-2 uppercase tracking-tighter">Novo Item</h3>
+                <h3 class="text-lg font-bold text-slate-700 mb-2 border-b pb-2">Cadastrar Novo Item</h3>
                 
-                <!-- Upload de Foto -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Foto do Equipamento</label>
-                    <div onclick="document.getElementById('new-file').click()" class="upload-area rounded-xl p-4 flex flex-col items-center justify-center gap-2">
-                        <img id="new-preview" class="hidden w-24 h-24 object-cover rounded-lg shadow-sm border-2 border-white mb-2" src="">
-                        <div id="upload-placeholder" class="text-center">
-                            <i data-lucide="camera" class="mx-auto text-slate-400 mb-1"></i>
-                            <p class="text-[11px] font-bold text-slate-500">Clique para escolher foto</p>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Imagem do Item</label>
+                    <label class="block w-full p-4 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all text-center group relative overflow-hidden bg-slate-50">
+                        <input type="file" id="new-image-file" accept="image/*" class="hidden" onchange="handleFileSelect(this, 'new-preview-container')">
+                        <div id="new-preview-container" class="flex flex-col items-center justify-center text-slate-400 py-4">
+                            <i data-lucide="upload-cloud" size="32" class="mb-2 group-hover:text-blue-500 transition-colors"></i>
+                            <span class="text-xs font-bold uppercase group-hover:text-blue-600">Clique para enviar foto</span>
                         </div>
-                        <input type="file" id="new-file" accept="image/*" class="hidden" onchange="handleFile(this, 'new-preview', 'upload-placeholder')">
+                    </label>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase">Descrição do Equipamento</label>
+                    <input type="text" id="new-name" placeholder="Ex: Suntech ST310U" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">Tipo de Material</label>
+                        <select id="new-type" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
+                            <option value="Insumo">Insumo</option>
+                            <option value="Ferramenta">Ferramenta</option>
+                            <option value="Locação">Locação</option>
+                            <option value="Cartão">Cartão</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase">Classificação</label>
+                        <select id="new-classification" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none font-bold focus:border-blue-500 bg-white">
+                            <option value="A">Classe A</option>
+                            <option value="B">Classe B</option>
+                            <option value="C">Classe C</option>
+                            <option value="D">Classe D</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <input type="text" id="new-name" placeholder="Nome do Equipamento" class="w-full p-4 border-2 border-slate-100 rounded-xl font-bold">
-                    <div class="grid grid-cols-2 gap-4">
-                        <select id="new-type" class="p-4 border-2 border-slate-100 rounded-xl bg-white font-bold">
-                            <option value="Insumo">Insumo</option><option value="Ferramenta">Ferramenta</option><option value="Locação">Locação</option>
-                        </select>
-                        <select id="new-classification" class="p-4 border-2 border-slate-100 rounded-xl bg-white font-bold">
-                            <option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option>
-                        </select>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Mínimo</label>
+                        <input type="number" id="new-min" value="5" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-500">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="number" id="new-min" value="5" class="p-4 border-2 border-slate-100 rounded-xl" placeholder="Mínimo">
-                        <input type="number" id="new-max" value="20" class="p-4 border-2 border-slate-100 rounded-xl" placeholder="Máximo">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Estoque Máximo</label>
+                        <input type="number" id="new-max" value="20" class="w-full p-4 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-500">
                     </div>
                 </div>
-                <button onclick="addNewItem()" class="w-full py-4 bg-blue-600 text-white rounded-lg font-black uppercase tracking-widest hover:bg-blue-700">Cadastrar</button>
+                <button id="btn-save-new" onclick="addNewItem()" class="w-full py-4 bg-emerald-600 text-white rounded-lg font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">Salvar no Inventário</button>
             </div>
         </div>
 
         <!-- Histórico -->
         <div id="history" class="tab-content">
-            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900 text-white">
-                        <tr class="text-[10px] uppercase font-bold">
-                            <th class="p-4">Data</th><th class="p-4">Tipo</th><th class="p-4">Equipamento</th><th class="p-4 text-center">Qtd</th><th class="p-4">Obs</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-table-body" class="divide-y divide-slate-100"></tbody>
-                </table>
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-900 border-b border-slate-800">
+                            <tr class="text-[10px] uppercase text-slate-500 font-bold">
+                                <th class="p-4">Data e Hora</th>
+                                <th class="p-4">Ação</th>
+                                <th class="p-4">Item</th>
+                                <th class="p-4 text-center">Qtd</th>
+                                <th class="p-4">Obs</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-10 text-center text-slate-400">Carregando histórico...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal Edição -->
-    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+    <!-- Modal de Edição -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
             <div class="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight">Editar Item</h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-red-500"><i data-lucide="x" size="20"></i></button>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" size="24"></i></button>
             </div>
             <div class="p-6 space-y-4">
                 <input type="hidden" id="edit-id">
-                
-                <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
-                    <div class="relative group">
-                        <img id="edit-preview" class="w-20 h-20 object-cover rounded-lg border-2 border-white shadow-md" src="">
-                        <button onclick="document.getElementById('edit-file').click()" class="absolute inset-0 bg-black/30 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                            <i data-lucide="camera" size="20"></i>
-                        </button>
-                        <input type="file" id="edit-file" accept="image/*" class="hidden" onchange="handleFile(this, 'edit-preview')">
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alterar Imagem</p>
-                        <p class="text-[11px] text-slate-500">Clique na miniatura para selecionar novo ficheiro.</p>
+                <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Imagem</label>
+                    <div class="flex items-center gap-4">
+                        <div id="edit-current-img-container" class="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                            <i data-lucide="image" class="text-slate-300"></i>
+                        </div>
+                        <label class="flex-1 cursor-pointer">
+                            <div class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 text-center transition-colors">Alterar Foto...</div>
+                            <input type="file" id="edit-image-file" accept="image/*" class="hidden" onchange="handleFileSelect(this, 'edit-current-img-container', true)">
+                        </label>
                     </div>
                 </div>
-
-                <input id="edit-name" type="text" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold" placeholder="Nome">
-                <div class="grid grid-cols-2 gap-4">
-                    <select id="edit-type" class="p-3 border-2 border-slate-100 rounded-lg">
-                        <option value="Insumo">Insumo</option><option value="Ferramenta">Ferramenta</option><option value="Locação">Locação</option>
-                    </select>
-                    <select id="edit-classification" class="p-3 border-2 border-slate-100 rounded-lg">
-                        <option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option>
-                    </select>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Nome</label>
+                    <input id="edit-name" type="text" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <input id="edit-min" type="number" class="p-3 border-2 border-slate-100 rounded-lg" placeholder="Mínimo">
-                    <input id="edit-max" type="number" class="p-3 border-2 border-slate-100 rounded-lg" placeholder="Máximo">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Tipo de Material</label>
+                        <select id="edit-type" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500 bg-white">
+                            <option value="Insumo">Insumo</option>
+                            <option value="Ferramenta">Ferramenta</option>
+                            <option value="Locação">Locação</option>
+                            <option value="Cartão">Cartão</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Classificação</label>
+                        <select id="edit-classification" class="w-full p-3 border-2 border-slate-100 rounded-lg font-bold outline-none focus:border-blue-500 bg-white">
+                            <option value="A">Classe A</option>
+                            <option value="B">Classe B</option>
+                            <option value="C">Classe C</option>
+                            <option value="D">Classe D</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Mínimo</label>
+                        <input id="edit-min" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-400 ml-1">Máximo</label>
+                        <input id="edit-max" type="number" class="w-full p-3 border-2 border-slate-100 rounded-lg outline-none focus:border-blue-500">
+                    </div>
                 </div>
             </div>
-            <div class="p-4 bg-slate-50 flex gap-3">
-                <button onclick="closeEditModal()" class="flex-1 py-3 text-slate-500 font-bold">Cancelar</button>
-                <button onclick="saveEditItem()" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-lg">Salvar Alterações</button>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="saveEditItem()" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">Salvar</button>
             </div>
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyATO-PdFidpnuPrPMq36oKTDFlpSxbsxDA", 
+            authDomain: "meuestoquerastreadores.firebaseapp.com",
+            projectId: "meuestoquerastreadores",
+            storageBucket: "meuestoquerastreadores.firebasestorage.app",
+            messagingSenderId: "808134691039",
+            appId: "1:808134691039:web:c7af29edeea9b3e202016a"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rastreadores-hub-prod';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rastreadores-main-db';
 
         let currentInventory = [];
+        let filteredInventory = [];
+        let currentUser = null;
         let currentTransactionType = 'in';
-        let isAuth = false;
 
-        // Utilitário para ler arquivo do computador (Base64)
-        window.handleFile = (input, previewId, placeholderId) => {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = document.getElementById(previewId);
-                    img.src = e.target.result;
-                    img.classList.remove('hidden');
-                    if(placeholderId) document.getElementById(placeholderId).classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
+        // Notificações
+        window.showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'error' ? 'bg-red-500' : (type === 'info' ? 'bg-blue-500' : 'bg-emerald-500');
+            toast.className = `${colors} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 toast mb-2 min-w-[300px] border border-white/10`;
+            toast.innerHTML = `<i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle'}" size="20"></i><span class="font-bold text-sm">${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
         };
 
-        const initSession = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
+        const updateStatus = (text, color) => {
+            const dot = document.getElementById('connection-status-dot');
+            if(dot) dot.className = `status-dot ${color}`;
+            const label = document.getElementById('connection-status-text');
+            if(label) label.innerText = text;
         };
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                isAuth = true;
-                document.getElementById('user-info').innerText = `ID: ${user.uid.substring(0,6)}`;
-                document.getElementById('connection-status-dot').className = "status-dot bg-emerald-500";
-                document.getElementById('connection-status-text').innerText = "ONLINE";
-                startSync();
+                currentUser = user;
+                document.getElementById('user-info').innerText = `ID: ${user.uid.substring(0,6)} (Online)`;
+                updateStatus("Sincronizado", "bg-emerald-500");
+                startListening();
             } else {
-                initSession();
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
             }
         });
 
-        function startSync() {
-            const path = (coll) => collection(db, 'artifacts', appId, 'public', 'data', coll);
-            
-            onSnapshot(path('inventory'), (snap) => {
+        function startListening() {
+            const invRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+            onSnapshot(invRef, (snap) => {
                 currentInventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderUI();
-            }, err => console.error(err));
+                handleFilter(); // Inicializa com a lista filtrada (ou cheia)
+                updateSelects();
+                updateStats();
+            });
 
-            onSnapshot(path('history'), (snap) => {
+            const histRef = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+            onSnapshot(histRef, (snap) => {
                 const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                                  .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
                 renderHistory(logs);
             });
         }
 
-        function renderUI() {
-            const body = document.getElementById('inventory-table-body');
-            body.innerHTML = currentInventory.map(item => {
-                const pronto = item.stockPronto || 0, reman = item.stockReman || 0, retorno = item.stockRetorno || 0;
-                const total = pronto + reman + retorno;
-                const alerta = total < (item.minStock || 0);
-                const placeholder = 'https://via.placeholder.com/150?text=Item';
-                return `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-4">
-                            <div class="flex items-center gap-3">
-                                <img src="${item.imageUrl || placeholder}" class="img-preview shadow-sm" onerror="this.src='${placeholder}'">
-                                <div>
-                                    <p class="font-bold text-slate-800">${item.name}</p>
-                                    <p class="text-[10px] text-slate-400 uppercase">${item.type || 'Insumo'}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="p-4 text-center"><span class="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black">${item.classification || 'C'}</span></td>
-                        <td class="p-4 text-center font-black ${alerta ? 'text-red-600' : 'text-slate-800'}">${total}</td>
-                        <td class="p-4 text-center font-bold text-emerald-600">${pronto}</td>
-                        <td class="p-4 text-center font-bold text-blue-500">${reman}</td>
-                        <td class="p-4 text-center font-bold text-amber-500">${retorno}</td>
-                        <td class="p-4 text-center">
-                            <button onclick="openEditModal('${item.id}')" class="text-slate-300 hover:text-blue-500"><i data-lucide="pencil" size="16"></i></button>
-                        </td>
-                    </tr>`;
-            }).join('');
+        // --- FILTRAGEM ---
+        window.handleFilter = () => {
+            const term = document.getElementById('search-input').value.toLowerCase().trim();
             
-            updateStats();
-            updateSelects();
+            filteredInventory = currentInventory.filter(item => {
+                const total = (item.stockPronto || 0) + (item.stockReman || 0) + (item.stockRetorno || 0);
+                const min = item.minStock || 0;
+                const max = item.maxStock || 0;
+                const classification = item.classification || 'C'; // Default to C if undefined
+                
+                let statusText = "";
+                if (total < min) statusText = "baixo";
+                else if (total > max) statusText = "excesso";
+                else statusText = "em controle";
+
+                return item.name.toLowerCase().includes(term) || 
+                       statusText.includes(term) ||
+                       (item.type && item.type.toLowerCase().includes(term)) ||
+                       classification.toLowerCase().includes(term);
+            });
+
+            renderInventory();
+        };
+
+        function renderInventory() {
+            const body = document.getElementById('inventory-table-body');
+            if(!body) return;
+            
+            body.innerHTML = filteredInventory.length === 0 ? 
+                `<tr><td colspan="11" class="p-10 text-center text-slate-400">Nenhum item corresponde à sua busca.</td></tr>` :
+                filteredInventory.map(item => {
+                    const pronto = item.stockPronto || 0;
+                    const reman = item.stockReman || 0;
+                    const retorno = item.stockRetorno || 0;
+                    const total = pronto + reman + retorno;
+                    const min = item.minStock || 0;
+                    const max = item.maxStock || 100;
+                    const classification = item.classification || 'C';
+
+                    let statusLabel = "";
+                    let statusClasses = "";
+
+                    if (total < min) {
+                        statusLabel = "Baixo";
+                        statusClasses = "bg-red-100 text-red-700 border-red-200";
+                    } else if (total > max) {
+                        statusLabel = "Excesso";
+                        statusClasses = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                    } else {
+                        statusLabel = "Em Controle";
+                        statusClasses = "bg-blue-100 text-blue-700 border-blue-200";
+                    }
+
+                    // Cores da Classificação
+                    const classColors = {
+                        'A': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                        'B': 'bg-blue-100 text-blue-700 border-blue-200',
+                        'C': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                        'D': 'bg-slate-100 text-slate-600 border-slate-200'
+                    };
+                    const classBadge = classColors[classification] || classColors['C'];
+
+                    const typeColors = { 'Insumo': "bg-slate-100 text-slate-600 border-slate-200", 'Ferramenta': "bg-orange-50 text-orange-600 border-orange-100", 'Locação': "bg-purple-50 text-purple-600 border-purple-100", 'Cartão': "bg-pink-50 text-pink-600 border-pink-100" };
+                    const typeClass = typeColors[item.type] || "bg-slate-100 text-slate-600";
+
+                    const imgHtml = item.imageUrl 
+                        ? `<div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center mx-auto"><img src="${item.imageUrl}" class="w-full h-full object-cover"></div>`
+                        : `<div class="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 mx-auto"><i data-lucide="package" size="18"></i></div>`;
+
+                    return `
+                        <tr class="hover:bg-slate-50 border-b border-slate-50 transition-colors">
+                            <td class="p-3">${imgHtml}</td>
+                            <td class="p-4 text-center">
+                                <span class="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs border ${classBadge} mx-auto shadow-sm">${classification}</span>
+                            </td>
+                            <td class="p-4 font-bold text-slate-700">${item.name}</td>
+                            <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase border ${typeClass}">${item.type}</span></td>
+                            <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase border ${statusClasses}">${statusLabel}</span></td>
+                            <td class="p-4 text-center font-black bg-slate-50 text-slate-900 border-x border-slate-100">${total}</td>
+                            <td class="p-4 text-center font-bold text-emerald-600 bg-emerald-50/30">${pronto}</td>
+                            <td class="p-4 text-center font-bold text-blue-500 bg-blue-50/30">${reman}</td>
+                            <td class="p-4 text-center font-bold text-amber-500 bg-amber-50/30">${retorno}</td>
+                            <td class="p-4 text-center text-slate-400 text-[10px] font-mono">${min} - ${max}</td>
+                            <td class="p-4 text-center flex items-center justify-center gap-2">
+                                <button onclick="openEditModal('${item.id}', '${item.name}', ${min}, ${item.maxStock || 0}, '${item.type}', '${classification}')" class="text-slate-400 hover:text-blue-600 p-2 rounded-lg transition-colors"><i data-lucide="pencil" size="16"></i></button>
+                                <button onclick="deleteMaterial('${item.id}', '${item.name}')" class="text-slate-400 hover:text-red-600 p-2 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                            </td>
+                        </tr>`;
+                }).join('');
             lucide.createIcons();
         }
 
-        function updateStats() {
-            const pronto = currentInventory.reduce((a,c) => a + (c.stockPronto || 0), 0);
-            const reman = currentInventory.reduce((a,c) => a + (c.stockReman || 0), 0);
-            const retorno = currentInventory.reduce((a,c) => a + (c.stockRetorno || 0), 0);
-            const classA = currentInventory.filter(i => i.classification === 'A').reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
-            const alertas = currentInventory.filter(i => ((i.stockPronto || 0) + (i.stockReman || 0) + (i.stockRetorno || 0)) < (i.minStock || 0)).length;
-
-            document.getElementById('stat-total').innerText = pronto + reman + retorno;
-            document.getElementById('stat-pronto').innerText = pronto;
-            document.getElementById('stat-reman').innerText = reman;
-            document.getElementById('stat-retorno').innerText = retorno;
-            document.getElementById('stat-class-a').innerText = classA;
-            document.getElementById('stat-alerta').innerText = alertas;
+        function renderHistory(logs) {
+            const body = document.getElementById('history-table-body');
+            if(!body) return;
+            body.innerHTML = logs.slice(0, 20).map(h => `
+                <tr class="text-xs hover:bg-slate-50 transition-colors">
+                    <td class="p-4 text-slate-500 font-mono">${h.date || '...'}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-md font-bold uppercase text-[10px] ${h.action === 'Entrada' ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}">${h.action}</span></td>
+                    <td class="p-4 font-bold text-slate-700">${h.item}</td>
+                    <td class="p-4 text-center font-black text-slate-600">${h.qty || '-'}</td>
+                    <td class="p-4 text-slate-500 italic truncate max-w-[200px]">${h.detail || '-'}</td>
+                </tr>`).join('');
         }
 
-        window.updateSelects = () => {
+        function updateSelects() {
             const select = document.getElementById('trans-item');
+            if(!select) return;
             const current = select.value;
-            select.innerHTML = '<option value="">Selecione...</option>' + currentInventory.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+            select.innerHTML = '<option value="">Selecione o equipamento...</option>' + 
+                currentInventory.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
             select.value = current;
+        }
+
+        function updateStats() {
+            // Cálculos existentes
+            const reman = currentInventory.reduce((a,c) => a + (c.stockReman || 0), 0);
+            const retorno = currentInventory.reduce((a,c) => a + (c.stockRetorno || 0), 0);
+            const alertas = currentInventory.filter(i => {
+                const total = (i.stockPronto || 0) + (i.stockReman || 0) + (i.stockRetorno || 0);
+                return total < (i.minStock || 0);
+            }).length;
+
+            // Novos Cálculos
+            const totalGeral = currentInventory.reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
+            const pronto = currentInventory.reduce((a,c) => a + (c.stockPronto || 0), 0);
+            const classA = currentInventory
+                .filter(i => i.classification === 'A')
+                .reduce((a,c) => a + (c.stockPronto || 0) + (c.stockReman || 0) + (c.stockRetorno || 0), 0);
+
+            // Atualiza UI
+            document.getElementById('stat-reman').innerText = reman;
+            document.getElementById('stat-retorno').innerText = retorno;
+            document.getElementById('stat-alerta').innerText = alertas;
+            
+            document.getElementById('stat-total').innerText = totalGeral;
+            document.getElementById('stat-pronto').innerText = pronto;
+            document.getElementById('stat-class-a').innerText = classA;
+        }
+
+        window.compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_W = 400; let w = img.width, h = img.height;
+                        if (w > MAX_W) { h *= MAX_W / w; w = MAX_W; }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
+        };
+
+        window.handleFileSelect = (input, previewId, isEdit = false) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const container = document.getElementById(previewId);
+                    if(isEdit) container.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    else container.innerHTML = `<img src="${e.target.result}" class="w-24 h-24 rounded-lg object-cover shadow-sm border border-slate-200 mb-2"><span class="text-[10px] text-emerald-600 font-bold uppercase">Foto Selecionada</span>`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.openEditModal = (id, name, min, max, type, classification) => {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-min').value = min;
+            document.getElementById('edit-max').value = max;
+            const item = currentInventory.find(i => i.id === id);
+            const imgContainer = document.getElementById('edit-current-img-container');
+            if(item && item.imageUrl) imgContainer.innerHTML = `<img src="${item.imageUrl}" class="w-full h-full object-cover">`;
+            else { imgContainer.innerHTML = `<i data-lucide="image" class="text-slate-300"></i>`; lucide.createIcons(); }
+            document.getElementById('edit-type').value = type || 'Insumo';
+            document.getElementById('edit-classification').value = classification || 'C'; // Default to C
+            document.getElementById('edit-modal').classList.remove('hidden');
+        };
+
+        window.closeEditModal = () => document.getElementById('edit-modal').classList.add('hidden');
+
+        window.saveEditItem = async () => {
+            const id = document.getElementById('edit-id').value;
+            const fileInput = document.getElementById('edit-image-file');
+            try {
+                let data = { 
+                    name: document.getElementById('edit-name').value, 
+                    minStock: parseInt(document.getElementById('edit-min').value), 
+                    maxStock: parseInt(document.getElementById('edit-max').value), 
+                    type: document.getElementById('edit-type').value,
+                    classification: document.getElementById('edit-classification').value
+                };
+                if(fileInput.files.length > 0) data.imageUrl = await compressImage(fileInput.files[0]);
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), data);
+                showToast("Item atualizado!"); closeEditModal();
+            } catch(e) { showToast("Erro ao editar.", "error"); }
         };
 
         window.setTransType = (type) => {
@@ -370,92 +656,64 @@
                 b.classList.remove('bg-white', 'shadow-md', 'text-emerald-600', 'text-red-600', 'text-blue-600');
                 b.classList.add('text-slate-500');
             });
-            const btn = document.getElementById(`type-${type}`);
             const colors = { in: 'text-emerald-600', out: 'text-red-600', transfer: 'text-blue-600' };
-            btn.classList.add('bg-white', 'shadow-md', colors[type]);
-            
-            document.getElementById('container-origin').style.display = type === 'in' ? 'none' : 'block';
-            document.getElementById('container-destination').style.display = type === 'out' ? 'none' : 'block';
+            document.getElementById(`type-${type}`).classList.add('bg-white', 'shadow-md', colors[type]);
+            document.getElementById('dynamic-locations').classList.toggle('hidden', type === 'in');
+            document.getElementById('container-destination').classList.toggle('hidden', type === 'out');
         };
 
         window.addNewItem = async () => {
             const name = document.getElementById('new-name').value;
-            if(!name || !isAuth) return;
-            
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), {
-                name, 
-                imageUrl: document.getElementById('new-preview').src || '',
-                minStock: parseInt(document.getElementById('new-min').value) || 0,
-                maxStock: parseInt(document.getElementById('new-max').value) || 0,
-                type: document.getElementById('new-type').value,
-                classification: document.getElementById('new-classification').value,
-                stockPronto: 0, stockReman: 0, stockRetorno: 0, timestamp: serverTimestamp()
-            });
+            if(!name) return showToast("Nome obrigatório", "error");
+            const fileInput = document.getElementById('new-image-file');
+            try {
+                let imageUrl = fileInput.files.length > 0 ? await compressImage(fileInput.files[0]) : "";
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inventory'), {
+                    name, 
+                    minStock: parseInt(document.getElementById('new-min').value) || 0, 
+                    maxStock: parseInt(document.getElementById('new-max').value) || 0,
+                    type: document.getElementById('new-type').value, 
+                    classification: document.getElementById('new-classification').value,
+                    imageUrl, stockPronto: 0, stockReman: 0, stockRetorno: 0, timestamp: serverTimestamp()
+                });
+                showToast("Item cadastrado!"); showTab('dashboard');
+            } catch(e) { showToast("Erro ao gravar", "error"); }
+        };
 
-            // Reset form
-            document.getElementById('new-name').value = '';
-            document.getElementById('new-preview').src = '';
-            document.getElementById('new-preview').classList.add('hidden');
-            document.getElementById('upload-placeholder').classList.remove('hidden');
-            showTab('dashboard');
+        window.deleteMaterial = async (id, name) => {
+            if(confirm(`Excluir "${name}"?`)) {
+                try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id)); showToast("Excluído."); }
+                catch(e) { showToast("Erro ao excluir.", "error"); }
+            }
         };
 
         window.handleTransaction = async () => {
             const id = document.getElementById('trans-item').value;
             const qty = parseInt(document.getElementById('trans-qty').value);
-            if(!id || isNaN(qty) || qty <= 0 || !isAuth) return;
+            if(!id || isNaN(qty) || qty <= 0) return showToast("Dados inválidos", "error");
 
             const item = currentInventory.find(i => i.id === id);
-            const update = { ...item }; delete update.id;
+            const data = { ...item }; delete data.id;
+            const from = document.getElementById('trans-from').value;
+            const to = document.getElementById('trans-to').value;
 
-            if (currentTransactionType === 'in') {
-                const to = document.getElementById('trans-to').value;
-                update[to] = (update[to] || 0) + qty;
-            } else if (currentTransactionType === 'out') {
-                const from = document.getElementById('trans-from').value;
-                if((update[from] || 0) < qty) return alert("Sem estoque!");
-                update[from] -= qty;
-            } else {
-                const f = document.getElementById('trans-from').value, t = document.getElementById('trans-to').value;
-                if(f === t || (update[f] || 0) < qty) return alert("Erro na transferência!");
-                update[f] -= qty; update[t] = (update[t] || 0) + qty;
+            if(currentTransactionType === 'in') data.stockPronto = (data.stockPronto || 0) + qty;
+            else {
+                if((data[from] || 0) < qty) return showToast("Saldo insuficiente!", "error");
+                data[from] -= qty;
+                if(currentTransactionType === 'transfer') data[to] = (data[to] || 0) + qty;
             }
 
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), update);
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), {
-                item: item.name, action: currentTransactionType === 'in' ? 'Entrada' : (currentTransactionType === 'out' ? 'Saída' : 'Transf'),
-                qty, detail: document.getElementById('trans-reason').value, date: new Date().toLocaleString(), timestamp: serverTimestamp()
-            });
-            showTab('dashboard');
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), data);
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), {
+                    item: item.name, action: currentTransactionType === 'in' ? 'Entrada' : (currentTransactionType === 'out' ? 'Saída' : 'Transferência'),
+                    qty, detail: document.getElementById('trans-reason').value || '', date: new Date().toLocaleString('pt-BR'), timestamp: serverTimestamp()
+                });
+                showToast("Sucesso!"); showTab('dashboard');
+            } catch(e) { showToast("Erro ao processar.", "error"); }
         };
 
-        window.openEditModal = (id) => {
-            const item = currentInventory.find(i => i.id === id);
-            document.getElementById('edit-id').value = id;
-            document.getElementById('edit-name').value = item.name;
-            document.getElementById('edit-preview').src = item.imageUrl || '';
-            document.getElementById('edit-min').value = item.minStock;
-            document.getElementById('edit-max').value = item.maxStock;
-            document.getElementById('edit-type').value = item.type;
-            document.getElementById('edit-classification').value = item.classification;
-            document.getElementById('edit-modal').classList.remove('hidden');
-            lucide.createIcons();
-        };
-
-        window.saveEditItem = async () => {
-            const id = document.getElementById('edit-id').value;
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id), {
-                name: document.getElementById('edit-name').value,
-                imageUrl: document.getElementById('edit-preview').src,
-                minStock: parseInt(document.getElementById('edit-min').value),
-                maxStock: parseInt(document.getElementById('edit-max').value),
-                type: document.getElementById('edit-type').value,
-                classification: document.getElementById('edit-classification').value
-            });
-            closeEditModal();
-        };
-
-        window.closeEditModal = () => document.getElementById('edit-modal').classList.add('hidden');
         window.showTab = (id) => {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
@@ -464,18 +722,6 @@
             lucide.createIcons();
         };
 
-        function renderHistory(logs) {
-            document.getElementById('history-table-body').innerHTML = logs.slice(0, 20).map(h => `
-                <tr class="text-[11px]">
-                    <td class="p-4 text-slate-400 font-mono">${h.date}</td>
-                    <td class="p-4 font-black ${h.action === 'Entrada' ? 'text-emerald-500' : 'text-red-500'}">${h.action}</td>
-                    <td class="p-4 font-bold">${h.item}</td>
-                    <td class="p-4 text-center font-black">${h.qty}</td>
-                    <td class="p-4 text-slate-500">${h.detail || '-'}</td>
-                </tr>`).join('');
-        }
-
-        setTransType('in');
         lucide.createIcons();
     </script>
 </body>
