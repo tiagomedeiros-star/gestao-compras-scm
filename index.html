@@ -30,4 +30,500 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <div class="md:col-span-1 space-y-4">
-                <div class="bg-
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+                        Configuração
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Regra do Cliente</label>
+                            <select id="ruleSelect" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                <option value="femsa">Padrão 26 Bits (Femsa/Invertido - Ex: TW, Femsa)</option>
+                                <option value="normal26">Padrão 26 Bits (Demais Clientes - Sem Inverter)</option>
+                                <option value="hexToDec">Padrão 32 Bits (Hexa para Decimal - Ex: Ultragaz)</option>
+                            </select>
+                            <p id="ruleDescription" class="text-xs text-slate-500 mt-2 bg-slate-100 p-2 rounded">
+                                Lê Decimal -> Converte para Hexa -> Inverte a ordem dos pares de bytes -> Converte para Decimal.
+                            </p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-end mb-1">
+                                <label class="block text-sm font-medium text-slate-700">Valores Lidos</label>
+                                <div class="flex items-center gap-2">
+                                    <button 
+                                        id="importBtn"
+                                        class="flex items-center gap-1.5 text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-700 py-1 px-2.5 rounded transition-colors"
+                                        title="Importar CSV ou Excel"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                        Importar Ficheiro
+                                    </button>
+                                    <input type="file" id="fileInput" accept=".csv, .xls, .xlsx" class="hidden" />
+
+                                    <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs font-bold" id="linesCount">
+                                        0 linhas
+                                    </span>
+                                </div>
+                            </div>
+                            <textarea 
+                                id="inputText"
+                                placeholder="Cole os números aqui ou importe um ficheiro...&#10;381224755&#10;254759362"
+                                class="w-full h-64 border border-slate-300 rounded-lg p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm resize-none transition-all"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button 
+                                id="clearBtn"
+                                class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2"
+                                title="Limpar tudo"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                Limpar Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-0 overflow-hidden flex flex-col h-full">
+                    
+                    <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+                            Resultados
+                        </h2>
+                        
+                        <div id="actionsContainer" class="flex gap-2 hidden">
+                            <button 
+                                id="copyRealBtn"
+                                class="flex items-center gap-1.5 text-sm font-medium bg-blue-100 border border-blue-200 hover:bg-blue-200 text-blue-800 py-1.5 px-3 rounded-md transition-colors"
+                            >
+                                <span id="copyRealIcon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </span>
+                                <span id="copyRealText">Copiar Valores Reais</span>
+                            </button>
+                            <button 
+                                id="copyBtn"
+                                class="flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-1.5 px-3 rounded-md transition-colors"
+                            >
+                                <span id="copyIcon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                </span>
+                                <span id="copyText">Copiar Tudo</span>
+                            </button>
+                            <button 
+                                id="exportBtn"
+                                class="flex items-center gap-1.5 text-sm font-medium bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded-md transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                Exportar CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1 p-0 relative">
+                        <div id="emptyState" class="h-64 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3 opacity-20"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+                            <p>Nenhum dado processado ainda.</p>
+                            <p class="text-sm mt-1">Cole os números ou importe uma planilha, a conversão é automática.</p>
+                        </div>
+
+                        <table id="resultsTable" class="w-full text-left border-collapse text-sm hidden">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600">
+                                    <th class="py-3 px-4 font-medium border-b border-slate-200">Valor Lido</th>
+                                    <th class="py-3 px-4 font-medium border-b border-slate-200">Hexadecimal</th>
+                                    <th id="colFirst" class="py-3 px-4 font-medium border-b border-slate-200 hidden text-xs text-slate-400">FIRST</th>
+                                    <th id="colMid" class="py-3 px-4 font-medium border-b border-slate-200 hidden text-xs text-slate-400">MID</th>
+                                    <th id="colLast" class="py-3 px-4 font-medium border-b border-slate-200 hidden text-xs text-slate-400">LAST</th>
+                                    <th id="colFamily" class="py-3 px-4 font-medium border-b border-slate-200 hidden text-xs text-slate-400">FAMILY</th>
+                                    <th id="colReversedHex" class="py-3 px-4 font-medium border-b border-slate-200">Hexa Invertido</th>
+                                    <th class="py-3 px-4 font-medium border-b border-slate-200 text-blue-700">Valor Real</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="resultsFooter" class="bg-slate-50 p-3 text-xs text-slate-500 text-right border-t border-slate-200 hidden">
+                        A mostrar <span id="resultsCount">0</span> registo(s) convertido(s).
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Elementos do DOM
+        const ruleSelect = document.getElementById('ruleSelect');
+        const ruleDescription = document.getElementById('ruleDescription');
+        const inputText = document.getElementById('inputText');
+        const linesCount = document.getElementById('linesCount');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // Elementos de importação de ficheiros
+        const importBtn = document.getElementById('importBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        // Botões de Acão
+        const actionsContainer = document.getElementById('actionsContainer');
+        const copyRealBtn = document.getElementById('copyRealBtn');
+        const copyRealIcon = document.getElementById('copyRealIcon');
+        const copyRealText = document.getElementById('copyRealText');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyIcon = document.getElementById('copyIcon');
+        const copyText = document.getElementById('copyText');
+        const exportBtn = document.getElementById('exportBtn');
+        
+        // Elementos de Tabela
+        const emptyState = document.getElementById('emptyState');
+        const resultsTable = document.getElementById('resultsTable');
+        const resultsTableBody = document.getElementById('resultsTableBody');
+        const colFirst = document.getElementById('colFirst');
+        const colMid = document.getElementById('colMid');
+        const colLast = document.getElementById('colLast');
+        const colFamily = document.getElementById('colFamily');
+        const colReversedHex = document.getElementById('colReversedHex');
+        
+        const resultsFooter = document.getElementById('resultsFooter');
+        const resultsCount = document.getElementById('resultsCount');
+
+        // Ícones SVG
+        const iconCopy = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+        const iconCheck = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+
+        // Estado Global
+        let currentResults = [];
+
+        // Regras de conversão
+        const conversionRules = {
+            femsa: {
+                description: 'Lê Decimal -> Converte para Hexa -> Inverte a ordem dos pares de bytes -> Converte para Decimal.',
+                process: (val) => {
+                    const cleanVal = val.trim();
+                    if (!cleanVal) return null;
+                    
+                    let num = parseInt(cleanVal, 10);
+                    if (isNaN(num)) return { original: cleanVal, hex: 'Erro', first: '-', mid: '-', last: '-', family: '-', reversedHex: 'Erro', final: 'Inválido' };
+
+                    let hex = num.toString(16).toUpperCase().padStart(8, '0');
+                    if (hex.length % 2 !== 0) hex = '0' + hex;
+
+                    let pairs = [];
+                    for (let i = 0; i < hex.length; i += 2) {
+                        pairs.push(hex.substring(i, i + 2));
+                    }
+                    
+                    while(pairs.length < 4) pairs.unshift('00');
+
+                    let reversedHex = [...pairs].reverse().join('');
+                    let finalDec = parseInt(reversedHex, 16);
+
+                    return { 
+                        original: cleanVal, 
+                        hex: hex, 
+                        first: pairs[0],
+                        mid: pairs[1],
+                        last: pairs[2],
+                        family: pairs[3],
+                        reversedHex: reversedHex, 
+                        final: finalDec 
+                    };
+                }
+            },
+            normal26: {
+                description: 'Lê Decimal -> Converte para Hexa -> Remove o 1º byte (Facility Code) -> Converte os 3 últimos bytes para Decimal.',
+                process: (val) => {
+                    const cleanVal = val.trim();
+                    if (!cleanVal) return null;
+                    
+                    let num = parseInt(cleanVal, 10);
+                    if (isNaN(num)) return { original: cleanVal, hex: 'Erro', first: '-', mid: '-', last: '-', family: '-', reversedHex: '-', final: 'Inválido' };
+
+                    let hex = num.toString(16).toUpperCase().padStart(8, '0');
+                    if (hex.length % 2 !== 0) hex = '0' + hex;
+
+                    let pairs = [];
+                    for (let i = 0; i < hex.length; i += 2) {
+                        pairs.push(hex.substring(i, i + 2));
+                    }
+                    while(pairs.length < 4) pairs.unshift('00');
+
+                    let hexWithoutFirstByte = pairs[1] + pairs[2] + pairs[3];
+                    let finalDec = parseInt(hexWithoutFirstByte, 16);
+
+                    return { 
+                        original: cleanVal, 
+                        hex: hex, 
+                        first: pairs[0],
+                        mid: pairs[1],
+                        last: pairs[2],
+                        family: pairs[3],
+                        reversedHex: '-', 
+                        final: finalDec 
+                    };
+                }
+            },
+            hexToDec: {
+                description: 'Usado em 32 Bits: Lê código Hexadecimal (ex: 0D00257156) e converte direto para Decimal Real.',
+                process: (val) => {
+                    const cleanVal = val.trim().replace(/[^0-9a-fA-F]/g, '');
+                    if (!cleanVal) return null;
+
+                    let finalDec = parseInt(cleanVal, 16);
+                    if (isNaN(finalDec)) return { original: val, hex: 'Erro', reversedHex: '-', final: 'Inválido' };
+
+                    return { original: val, hex: cleanVal.toUpperCase(), reversedHex: '-', final: finalDec };
+                }
+            }
+        };
+
+        // Função de Processamento
+        function performConversion() {
+            const ruleId = ruleSelect.value;
+            const processFn = conversionRules[ruleId].process;
+            const lines = inputText.value.split('\n');
+            
+            currentResults = lines.map(line => processFn(line)).filter(res => res !== null);
+            renderUI();
+        }
+
+        // Event Listeners Básicos
+        ruleSelect.addEventListener('change', (e) => {
+            const rule = e.target.value;
+            ruleDescription.textContent = conversionRules[rule].description;
+            performConversion();
+        });
+
+        inputText.addEventListener('input', (e) => {
+            const text = e.target.value;
+            const lines = text.split('\n').filter(l => l.trim()).length;
+            linesCount.textContent = `${lines} linhas`;
+            performConversion();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            inputText.value = '';
+            linesCount.textContent = '0 linhas';
+            currentResults = [];
+            renderUI();
+        });
+
+        // Importação de Ficheiros
+        importBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            reader.onload = (evt) => {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    let extractedValues = jsonData
+                        .map(row => row[0])
+                        .filter(val => val !== undefined && val !== null && String(val).trim() !== '');
+
+                    if (extractedValues.length > 0) {
+                        const firstVal = String(extractedValues[0]).toLowerCase().trim();
+                        if (firstVal.includes('valor lido') || firstVal === 'a' || firstVal.includes('hexa')) {
+                            extractedValues.shift(); 
+                        }
+                    }
+
+                    const newText = extractedValues.join('\n');
+                    
+                    if (inputText.value.trim() !== '') {
+                        inputText.value += '\n' + newText;
+                    } else {
+                        inputText.value = newText;
+                    }
+                    
+                    inputText.dispatchEvent(new Event('input'));
+                    fileInput.value = '';
+                    
+                } catch (error) {
+                    console.error("Erro ao processar a planilha:", error);
+                    alert("Ocorreu um erro ao ler a folha de cálculo. Verifique se o formato é válido.");
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Copiar Apenas Valores Reais
+        copyRealBtn.addEventListener('click', () => {
+            if (currentResults.length === 0) return;
+            
+            const textToCopy = currentResults.map(r => r.final).join('\n');
+            
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                copyRealIcon.innerHTML = iconCheck;
+                copyRealText.textContent = 'Copiado!';
+                setTimeout(() => {
+                    copyRealIcon.innerHTML = iconCopy;
+                    copyRealText.textContent = 'Copiar Valores Reais';
+                }, 2000);
+            } catch (err) {
+                console.error('Falha ao copiar:', err);
+            }
+            document.body.removeChild(textarea);
+        });
+
+        // Copiar Tudo
+        copyBtn.addEventListener('click', () => {
+            if (currentResults.length === 0) return;
+            
+            const textToCopy = currentResults.map(r => `${r.original}\t${r.final}`).join('\n');
+            
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                copyIcon.innerHTML = iconCheck;
+                copyText.textContent = 'Copiado!';
+                setTimeout(() => {
+                    copyIcon.innerHTML = iconCopy;
+                    copyText.textContent = 'Copiar Tudo';
+                }, 2000);
+            } catch (err) {
+                console.error('Falha ao copiar:', err);
+            }
+            document.body.removeChild(textarea);
+        });
+
+        // Exportar CSV
+        exportBtn.addEventListener('click', () => {
+            if (currentResults.length === 0) return;
+
+            const is26Bits = ruleSelect.value === 'femsa' || ruleSelect.value === 'normal26';
+            const headers = ['Valor Lido', 'Hexadecimal'];
+            
+            if (is26Bits) {
+                headers.push('FIRST', 'MID', 'LAST', 'FAMILY');
+            }
+            
+            if (ruleSelect.value !== 'normal26') {
+                headers.push('Hexa Invertido');
+            }
+            
+            headers.push('Valor Real');
+
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            currentResults.forEach(r => {
+                let row = `${r.original},${r.hex}`;
+                if (is26Bits) {
+                    row += `,${r.first},${r.mid},${r.last},${r.family}`;
+                }
+                if (ruleSelect.value !== 'normal26') {
+                    row += `,${r.reversedHex}`;
+                }
+                row += `,${r.final}`;
+                csvRows.push(row);
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'cartoes_convertidos.csv');
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+
+        // UI Renderização
+        function renderUI() {
+            if (currentResults.length === 0) {
+                emptyState.classList.remove('hidden');
+                resultsTable.classList.add('hidden');
+                actionsContainer.classList.add('hidden');
+                resultsFooter.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            resultsTable.classList.remove('hidden');
+            actionsContainer.classList.remove('hidden');
+            resultsFooter.classList.remove('hidden');
+
+            resultsCount.textContent = currentResults.length;
+
+            const is26Bits = ruleSelect.value === 'femsa' || ruleSelect.value === 'normal26';
+            const showReversed = currentResults[0].reversedHex !== '-';
+            
+            colReversedHex.style.display = showReversed ? 'table-cell' : 'none';
+            colFirst.style.display = is26Bits ? 'table-cell' : 'none';
+            colMid.style.display = is26Bits ? 'table-cell' : 'none';
+            colLast.style.display = is26Bits ? 'table-cell' : 'none';
+            colFamily.style.display = is26Bits ? 'table-cell' : 'none';
+
+            resultsTableBody.innerHTML = '';
+
+            currentResults.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors';
+                
+                let html = `
+                    <td class="py-2.5 px-4 font-mono text-slate-600">${item.original}</td>
+                    <td class="py-2.5 px-4 font-mono text-slate-500">${item.hex}</td>
+                `;
+
+                if (is26Bits) {
+                    html += `
+                        <td class="py-2.5 px-4 font-mono text-slate-400 text-xs">${item.first}</td>
+                        <td class="py-2.5 px-4 font-mono text-slate-400 text-xs">${item.mid}</td>
+                        <td class="py-2.5 px-4 font-mono text-slate-400 text-xs">${item.last}</td>
+                        <td class="py-2.5 px-4 font-mono text-slate-400 text-xs">${item.family}</td>
+                    `;
+                }
+
+                if (showReversed) {
+                    html += `<td class="py-2.5 px-4 font-mono text-slate-500">${item.reversedHex}</td>`;
+                }
+
+                html += `
+                    <td class="py-2.5 px-4 font-mono font-bold text-blue-700 bg-blue-50/30">
+                        ${item.final}
+                    </td>
+                `;
+
+                tr.innerHTML = html;
+                resultsTableBody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
