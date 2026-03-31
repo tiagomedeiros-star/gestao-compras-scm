@@ -100,13 +100,13 @@
                         
                         <div id="actionsContainer" class="flex gap-2 hidden">
                             <button 
-                                id="copyRealBtn"
+                                id="copyDecimalBtn"
                                 class="flex items-center gap-1.5 text-sm font-medium bg-blue-100 border border-blue-200 hover:bg-blue-200 text-blue-800 py-1.5 px-3 rounded-md transition-colors"
                             >
-                                <span id="copyRealIcon">
+                                <span id="copyDecimalIcon">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                 </span>
-                                <span id="copyRealText">Copiar Valores Reais</span>
+                                <span id="copyDecimalText">Copiar Decimal</span>
                             </button>
                             <button 
                                 id="copyBtn"
@@ -173,11 +173,11 @@
         const importBtn = document.getElementById('importBtn');
         const fileInput = document.getElementById('fileInput');
 
-        // Botões de Acão
+        // Botões de Ação
         const actionsContainer = document.getElementById('actionsContainer');
-        const copyRealBtn = document.getElementById('copyRealBtn');
-        const copyRealIcon = document.getElementById('copyRealIcon');
-        const copyRealText = document.getElementById('copyRealText');
+        const copyDecimalBtn = document.getElementById('copyDecimalBtn');
+        const copyDecimalIcon = document.getElementById('copyDecimalIcon');
+        const copyDecimalText = document.getElementById('copyDecimalText');
         const copyBtn = document.getElementById('copyBtn');
         const copyIcon = document.getElementById('copyIcon');
         const copyText = document.getElementById('copyText');
@@ -369,8 +369,8 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Copiar Apenas Valores Reais
-        copyRealBtn.addEventListener('click', () => {
+        // Copiar Apenas o Valor Decimal (Última Coluna)
+        copyDecimalBtn.addEventListener('click', () => {
             if (currentResults.length === 0) return;
             
             const textToCopy = currentResults.map(r => r.final).join('\n');
@@ -381,11 +381,11 @@
             textarea.select();
             try {
                 document.execCommand('copy');
-                copyRealIcon.innerHTML = iconCheck;
-                copyRealText.textContent = 'Copiado!';
+                copyDecimalIcon.innerHTML = iconCheck;
+                copyDecimalText.textContent = 'Copiado!';
                 setTimeout(() => {
-                    copyRealIcon.innerHTML = iconCopy;
-                    copyRealText.textContent = 'Copiar Valores Reais';
+                    copyDecimalIcon.innerHTML = iconCopy;
+                    copyDecimalText.textContent = 'Copiar Decimal';
                 }, 2000);
             } catch (err) {
                 console.error('Falha ao copiar:', err);
